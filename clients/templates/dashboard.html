@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+    <h2>Session</h2>
+    <ul class="totp">
+        <li><strong>Current TOTP:</strong> {{ totp_code }}</li>
+        <li><strong>Seconds to refresh:</strong> {{ totp_remaining }}</li>
+    </ul>
+</section>
+<section class="layout">
+    <div class="panel">
+        <h2>Contacts</h2>
+        <ul class="contact-list">
+            {% for phone, contact in contacts.items() %}
+                <li class="{% if phone == selected_peer %}active{% endif %}">
+                    <a href="{{ url_for('dashboard', peer=phone) }}">{{ phone }}</a>
+                    {% if contact.shared_key %}<span class="badge">E2EE Ready</span>{% endif %}
+                </li>
+            {% else %}
+                <li>No contacts stored yet.</li>
+            {% endfor %}
+        </ul>
+        <form method="post" action="{{ url_for('add_contact_route') }}">
+            <h3>Add Contact</h3>
+            <label>
+                Phone Number
+                <input type="text" name="contact_phone" required />
+            </label>
+            <button type="submit">Add</button>
+        </form>
+    </div>
+    <div class="panel">
+        <h2>Conversation{% if selected_peer %} with {{ selected_peer }}{% endif %}</h2>
+        {% if selected_peer %}
+            <div class="messages">
+                {% for message in messages %}
+                    <article class="message {{ message.direction }}">
+                        <header>
+                            <span>{{ message.direction|capitalize }}</span>
+                            <span>{{ message.timestamp | datetimeformat }}</span>
+                            <span class="badge {% if message.valid_signature %}ok{% else %}bad{% endif %}">
+                                {% if message.valid_signature %}Signature OK{% else %}Invalid{% endif %}
+                            </span>
+                        </header>
+                        <p>{{ message.plaintext or '[Unable to decrypt]' }}</p>
+                    </article>
+                {% else %}
+                    <p>No messages exchanged yet.</p>
+                {% endfor %}
+            </div>
+            <form method="post" action="{{ url_for('send_message_route') }}">
+                <input type="hidden" name="recipient" value="{{ selected_peer }}" />
+                <label>
+                    Message
+                    <textarea name="message" rows="3" required></textarea>
+                </label>
+                <button type="submit">Send</button>
+            </form>
+        {% else %}
+            <p>Select a contact to view the conversation.</p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

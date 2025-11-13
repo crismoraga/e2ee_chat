@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+    <h2>Set Up Two-Factor Authentication</h2>
+    <p>Scan the QR code below in your TOTP authenticator (Microsoft Authenticator, Authy, etc.) or enter the secret manually.</p>
+    <div class="totp-block">
+        <p><strong>Secret:</strong> {{ totp_secret }}</p>
+        <p><strong>Provisioning URI:</strong> <code>{{ totp_uri }}</code></p>
+        <p>After enrolling the secret in your authenticator, wait for the next 30-second window and then proceed to login.</p>
+    </div>
+    <a class="button" href="{{ url_for('home') }}">Back to Home</a>
+</section>
+{% endblock %}

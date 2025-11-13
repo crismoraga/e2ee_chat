@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>{{ title or "TEL252 Secure Chat" }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+<header>
+    <h1>TEL252 Secure Chat Demo</h1>
+    <nav>
+        {% if session.get('phone') %}
+        <span class="session">Logged in as <strong>{{ session['phone'] }}</strong></span>
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
+        {% else %}
+        <a href="{{ url_for('home') }}">Home</a>
+        {% endif %}
+    </nav>
+</header>
+<main>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+</main>
+<footer>
+    <p>Lab 7 &ndash; TEL252 Criptografía</p>
+</footer>
+</body>
+</html>
