@@ -80,6 +80,46 @@ docs/              # Detailed design notes and diagrams
 data/              # Runtime storage for users/messages (JSON)
 ```
 
+## 🚀 Quick Start
+
+### Método Automático (Recomendado)
+
+```powershell
+# 1. Setup inicial (solo una vez)
+.\setup.ps1
+
+# 2. Iniciar aplicación (abre API + Web Client automáticamente)
+.\start.ps1
+```
+
+### Método Manual (2 Terminales)
+
+**Terminal 1 - API Server:**
+```powershell
+cd c:\Users\Cris\Desktop\e2e_chat
+.\.venv\Scripts\Activate.ps1
+python run_api.py
+```
+
+**Terminal 2 - Web Client:**
+```powershell
+cd c:\Users\Cris\Desktop\e2e_chat
+.\.venv\Scripts\Activate.ps1
+python clients/web_app.py
+```
+
+**Acceso:** Abre tu navegador en `http://127.0.0.1:5001`
+
+### Verificar Funcionamiento
+
+```powershell
+python -m pytest tests/ -v
+```
+
+**Documentación Completa:** Ver `COMO_EJECUTAR.md`
+
+---
+
 ## Quick Start
 
 1. **Create virtual environment & install dependencies**
