@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TEL252 Chat · Acceso Seguro</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="landing">
+    <div class="plasma" aria-hidden="true"></div>
+    <header class="landing__header">
+        <p class="eyebrow">Laboratorio 7 · TEL252</p>
+        <h1>Un hub privado para tus conversaciones cifradas</h1>
+        <p>
+            Gestionamos llaves RSA, TOTPs y cifrado AES-GCM de forma automática. Tú solo eliges con quién hablar, nosotros
+            aseguramos que ningún intermediario pueda leerlo.
+        </p>
+        <ul class="pill-list">
+            <li>Dispositivos de confianza con registro automático.</li>
+            <li>Mensajería estilo WhatsApp en páginas separadas.</li>
+            <li>Contactos y perfiles se habilitan tras tu login.</li>
+        </ul>
+    </header>
+
+    <main class="landing__grid">
+        <section class="card auth" aria-live="polite">
+            <nav class="tabs" role="tablist" aria-label="Formularios de acceso">
+                <button class="tab active" role="tab" data-tab="login" aria-controls="login-form" aria-selected="true" type="button">Iniciar sesión</button>
+                <button class="tab" role="tab" data-tab="register" aria-controls="register-form" aria-selected="false" type="button">Crear cuenta</button>
+            </nav>
+
+            <form id="login-form" class="tab-panel" role="tabpanel" autocomplete="on">
+                <label>Correo institucional
+                    <input id="login-identifier" type="email" placeholder="alice@usm.cl" required />
+                </label>
+                <label>Contraseña
+                    <input id="login-password" type="password" placeholder="••••••••" required />
+                </label>
+                <label>Código TOTP (opcional)
+                    <input id="login-totp" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="Lo completamos por ti" />
+                </label>
+                <button class="primary" type="submit">Entrar al chat</button>
+                <p class="hint">Si ya guardamos tu secreto, generamos el código automáticamente.</p>
+                <div id="login-feedback" class="feedback" role="status"></div>
+            </form>
+
+            <form id="register-form" class="tab-panel hidden" role="tabpanel" autocomplete="on">
+                <label>Nombre visible
+                    <input id="register-display" type="text" placeholder="Alice" required />
+                </label>
+                <label>Correo institucional
+                    <input id="register-identifier" type="email" placeholder="alice@usm.cl" required />
+                </label>
+                <label>Contraseña segura
+                    <input id="register-password" type="password" placeholder="Mínimo 10 caracteres" required />
+                </label>
+                <button class="primary" type="submit">Crear cuenta protegida</button>
+                <p class="hint">Guardamos tu secreto TOTP cifrado en este dispositivo.</p>
+                <div id="register-feedback" class="feedback" role="status"></div>
+            </form>
+        </section>
+
+        <section class="card preview">
+            <h2>¿Qué se desbloquea tras tu login?</h2>
+            <ol>
+                <li><strong>Mensajes:</strong> interfaz tipo WhatsApp para chats cifrados.</li>
+                <li><strong>Contactos:</strong> directorio seguro con estado de llaves.</li>
+                <li><strong>Perfil:</strong> gestión de dispositivos y sesiones.</li>
+            </ol>
+            <p>Todo vive en páginas separadas, listas para mapearse a subdominios o rutas dedicadas.</p>
+            <div class="subdomain-list">
+                <p>Destinos configurados:</p>
+                <ul id="workspace-links">
+                    <li><strong>mensajes</strong><span>/ui/mensajes.html</span></li>
+                    <li><strong>contactos</strong><span>/ui/contactos.html</span></li>
+                    <li><strong>perfil</strong><span>/ui/perfil.html</span></li>
+                </ul>
+                <small>Personaliza hosts declarando <code>window.WORKSPACE_HOSTS</code> antes de cargar estos scripts.</small>
+            </div>
+            <a class="ghost" href="#" aria-disabled="true">Requiere sesión activa</a>
+        </section>
+    </main>
+
+    <footer class="landing__footer">
+        <span>AES-GCM · RSA-OAEP · HMAC-SHA256</span>
+        <span>Demo académico · Universidad Técnica Federico Santa María</span>
+    </footer>
+
+    <script src="js/core.js" defer></script>
+    <script src="js/auth.js" defer></script>
+</body>
+</html>

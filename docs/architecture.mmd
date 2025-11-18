@@ -1,0 +1,42 @@
+sequenceDiagram
+    participant UserA as Alice Client
+    participant API as Flask API
+    participant DB as SQLite Store
+    participant UserB as Bob Client
+
+    rect rgb(240,240,240)
+        note over UserA: Account registration
+        UserA->>API: POST /api/register<br/>identifier, display_name, password
+        API->>API: HMAC-SHA256(password, server_secret)
+        API->>API: generate TOTP secret (RFC 6238)
+        API->>DB: INSERT users(identifier, password_hash, totp_secret)
+        API-->>UserA: id, totp_secret
+        UserA->>UserA: Store totp_secret + RSA-2048 key pair
+    end
+
+    rect rgb(230,245,255)
+        note over UserA: Authentication & device provisioning
+        UserA->>API: POST /api/login<br/>identifier, password, TOTP
+        API->>DB: SELECT users
+        API->>API: verify_password & verify_totp
+        API-->>UserA: session_token (HMAC)
+        UserA->>API: POST /api/devices<br/>device_name, public_key
+        API->>DB: INSERT devices
+        API-->>UserA: device_id
+    end
+
+    rect rgb(255,245,230)
+        note over UserA,UserB: Message exchange (E2EE)
+        UserA->>API: GET /api/users/bob@example.com (token)
+        API->>DB: SELECT users/devices
+        API-->>UserA: Bob public_key
+        UserA->>UserA: AES-GCM encrypt(message)
+        UserA->>UserA: RSA-OAEP encrypt(session_key)
+        UserA->>API: POST /api/messages (cipher artefacts)
+        API->>DB: INSERT messages
+        UserB->>API: GET /api/messages (token)
+        API->>DB: SELECT messages WHERE recipient
+        API-->>UserB: Encrypted payloads
+        UserB->>UserB: RSA-OAEP decrypt(session_key)
+        UserB->>UserB: AES-GCM decrypt(ciphertext + tag)
+    end

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TEL252 Chat · Mensajes</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="workspace" data-page="mensajes">
+    <div class="plasma" aria-hidden="true"></div>
+    <header class="workspace__topbar">
+        <div>
+            <p class="eyebrow">Hub cifrado</p>
+            <h1>Mensajes</h1>
+        </div>
+        <div class="nav-group">
+            <button data-nav="mensajes" class="active">Mensajes</button>
+            <button data-nav="contactos">Contactos</button>
+            <button data-nav="perfil">Perfil</button>
+            <button id="logout-btn" class="ghost">Cerrar sesión</button>
+        </div>
+    </header>
+
+    <section class="workspace__grid">
+        <aside class="panel contact-panel">
+            <header>
+                <div class="user-stack">
+                    <p>Sesión activa</p>
+                    <h2 id="user-badge">Usuario</h2>
+                    <span id="totp-pill" class="pill pill--totp">Sincronizando MFA...</span>
+                </div>
+                <input id="contact-filter" type="search" placeholder="Buscar contacto" />
+            </header>
+            <div id="contacts-rail" class="contact-rail">
+                <p class="empty">Sincronizando contactos...</p>
+            </div>
+        </aside>
+
+        <div class="panel chat-panel">
+            <header class="chat-header">
+                <div>
+                    <h2 id="chat-title">Selecciona un contacto</h2>
+                    <p id="chat-subtitle">Esperando conversación</p>
+                </div>
+                <span class="pill pill--secure">AES-GCM + RSA-OAEP</span>
+            </header>
+
+            <div id="chat-thread" class="chat-thread">
+                <div class="empty">Tu hilo cifrado aparecerá aquí.</div>
+            </div>
+
+            <form id="composer-form" class="composer" autocomplete="off">
+                <textarea id="composer-input" rows="2" placeholder="Escribe algo privado..." required></textarea>
+                <button class="primary" type="submit">Enviar</button>
+            </form>
+        </div>
+    </section>
+
+    <script src="js/core.js" defer></script>
+    <script src="js/workspace.js" defer></script>
+</body>
+</html>

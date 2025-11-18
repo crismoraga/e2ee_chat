@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TEL252 Chat · Contactos</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="workspace" data-page="contactos">
+    <div class="plasma" aria-hidden="true"></div>
+    <header class="workspace__topbar">
+        <div>
+            <p class="eyebrow">Hub cifrado</p>
+            <h1>Contactos</h1>
+        </div>
+        <div class="nav-group">
+            <button data-nav="mensajes">Mensajes</button>
+            <button data-nav="contactos" class="active">Contactos</button>
+            <button data-nav="perfil">Perfil</button>
+            <button id="logout-btn" class="ghost">Cerrar sesión</button>
+        </div>
+    </header>
+
+    <section class="panel directory-panel">
+        <header>
+            <div class="user-stack">
+                <p>Directorio cifrado</p>
+                <h2 id="user-badge">Usuario</h2>
+                <span id="totp-pill" class="pill pill--totp">Sincronizando MFA...</span>
+            </div>
+            <button id="refresh-contacts" class="ghost" type="button">Actualizar</button>
+        </header>
+        <form id="add-contact-form" class="add-contact" autocomplete="off">
+            <label for="add-contact-identifier">Agregar contacto seguro</label>
+            <div class="add-contact__controls">
+                <input id="add-contact-identifier" type="email" placeholder="persona@usm.cl" required />
+                <button class="primary" type="submit">Compartir llave</button>
+            </div>
+            <p id="add-contact-feedback" class="feedback" aria-live="polite"></p>
+        </form>
+        <div id="directory-grid" class="directory-grid">
+            <p class="empty">Sin información todavía.</p>
+        </div>
+    </section>
+
+    <script src="js/core.js" defer></script>
+    <script src="js/workspace.js" defer></script>
+</body>
+</html>

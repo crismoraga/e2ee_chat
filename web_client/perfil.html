@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TEL252 Chat · Perfil seguro</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="workspace" data-page="perfil">
+    <div class="plasma" aria-hidden="true"></div>
+    <header class="workspace__topbar">
+        <div>
+            <p class="eyebrow">Hub cifrado</p>
+            <h1>Perfil y dispositivos</h1>
+        </div>
+        <div class="nav-group">
+            <button data-nav="mensajes">Mensajes</button>
+            <button data-nav="contactos">Contactos</button>
+            <button data-nav="perfil" class="active">Perfil</button>
+            <button id="logout-btn" class="ghost">Cerrar sesión</button>
+        </div>
+    </header>
+
+    <section class="panel profile-panel">
+        <article>
+            <h2>Sesiones recordadas</h2>
+            <ul id="session-list" class="session-list"></ul>
+        </article>
+        <article>
+            <h2>Estado de llaves locales</h2>
+            <p id="keys-status">Verificando...</p>
+            <button id="regen-key" class="primary" type="button">Regenerar llaves y registrar</button>
+            <p id="mfa-status" class="hint">Comprobando secreto TOTP...</p>
+        </article>
+    </section>
+
+    <script src="js/core.js" defer></script>
+    <script src="js/workspace.js" defer></script>
+</body>
+</html>

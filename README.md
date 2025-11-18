@@ -1,186 +1,214 @@
-# TEL252 Secure Chat API (Lab 7) - Implementación Completa E2EE
+# TEL252 Lab 7 – End-to-End Encrypted Chat API
 
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)]() [![Python](https://img.shields.io/badge/python-3.12+-blue)]() [![License](https://img.shields.io/badge/license-MIT-orange)]()
+This project implements a demonstrable end-to-end encrypted (E2EE) chat experience for TEL252. It combines symmetric and asymmetric cryptography, password hashing, Time-based One-Time Passwords (TOTP), and HMAC-protected session tokens. A lightweight Flask API coordinates authentication, device key management, and message relay without ever seeing plaintext messages.
 
-Este repositorio contiene la **implementación de referencia completa** de una API de mensajería segura con Flask y cifrado de extremo a extremo (E2EE), desarrollada para el **Lab 7 de TEL252 - Criptografía y Seguridad en la Información (UTFSM, 2025)**.
+## Features at a Glance
 
-## 🎯 Objetivos del Lab 7
+- Account onboarding with HMAC-SHA256 password digests (server-held secret) and RFC 6238 compatible TOTPs.
+- HMAC-SHA256 signed session tokens for stateless authentication.
+- Device public-key registry holding PEM-encoded RSA-2048 keys for every user.
+- Client-driven AES-256-GCM encryption with per-message random session keys.
+- RSA-OAEP wrapping of session keys so only intended recipients can decrypt.
+- SQLite persistence keeping the server self-contained and easy to demo.
+- Command-line demo client that can register, authenticate, exchange keys, send encrypted messages, and decrypt inbox items locally.
+- Extensive inline documentation and separations of concerns to highlight the cryptographic reasoning.
 
-1. **API funcional (50%):** Flask API con primitivas criptográficas integradas
-2. **Diagrama completo (50%):** Diagrama autocontenido con algoritmos, parámetros y matemática
-
-**Este proyecto cumple ambos objetivos al 100%.**
-
----
-
-## ✨ Características Principales
-
-### 🔐 Seguridad Criptográfica (TEL252)
-
-- **Cifrado End-to-End (E2EE):**
-  - X25519 (ECDH sobre Curve25519) para intercambio de llaves (Clase 7)
-  - HKDF-SHA3-256 para derivación de llaves compartidas (Clases 9, 11)
-  - ChaCha20-Poly1305 AEAD para cifrado de mensajes (Clases 2, 11)
-
-- **Autenticidad e Integridad:**
-  - Ed25519 (EdDSA) para firmas digitales (Clase 10)
-  - Poly1305 MAC integrado en ChaCha20-Poly1305 (Clase 11)
-  - Verificación de Additional Authenticated Data (AAD)
-
-- **Autenticación de Usuarios:**
-  - SHA3-512 con pepper server-side para password hashing (Clase 9)
-  - TOTP (HMAC-SHA1, RFC 6238) para 2FA con authenticators (Clase 11)
-  - Session tokens HMAC-SHA3-256 con expiración (Clase 11)
-
-- **Transporte Seguro (Opcional):**
-  - TLS 1.2/1.3 con certificados X.509 (Clase 12)
-  - Guía completa de deployment con HTTPS
-
-### 🛡️ Propiedades de Seguridad
-
-1. **Confidencialidad:** Solo Alice y Bob pueden leer mensajes (E2EE)
-2. **Integridad:** Firmas Ed25519 + Poly1305 MAC detectan modificaciones
-3. **Autenticidad:** Firmas digitales prueban identidad del remitente
-4. **Forward Secrecy:** Llaves efímeras X25519 por par de usuarios
-5. **Mutual Authentication:** Contactos bidireccionales requeridos
-6. **Server Blindness:** API NO ve plaintext, NO puede descifrar mensajes
-
----
-
-## 📊 Diagrama de Secuencia Completo
-
-El **diagrama autocontenido** (vale 50% de la nota) está en:
-
-📄 **`docs/sequence_diagram.md`**
-
-Incluye:
-
-- ✅ Flujo completo: Registro → Login → Key Exchange → Message Sending
-- ✅ TODOS los algoritmos con sus parámetros criptográficos
-- ✅ Matemática detallada (ecuaciones de curvas elípticas, HKDF, EdDSA, etc.)
-- ✅ Mapeo completo a clases de TEL252 (Clases 2-12)
-- ✅ Formato Mermaid interactivo
-
----
-
-## 📁 Estructura del Proyecto
+## Repository Layout
 
 ```text
-
-```
-app/               # Flask API application package
-clients/           # Local client library + web UI
-  ├─ service.py    # High-level client with crypto helpers
-  ├─ state.py      # Local persistence of user keys and shared secrets
-  ├─ web_app.py    # Flask front-end for “WhatsApp style” usage
-config.py          # Centralised configuration (paths, secrets)
-requirements.txt   # Python dependencies
-tests/             # Pytest suite validating the secure flow
-docs/              # Detailed design notes and diagrams
-data/              # Runtime storage for users/messages (JSON)
+lab7_e2ee_chat/
+├── __init__.py            # Package marker
+├── client_cli.py          # CLI demo client
+├── config.py              # Configuration helpers (DB path, HMAC secret)
+├── crypto.py              # Primitivas criptográficas (HMAC-SHA256, TOTP, RSA-OAEP, AES-GCM)
+├── database.py            # SQLite wrapper (users, devices, messages)
+├── docs/
+│   └── architecture.mmd   # Mermaid sequence diagram of message exchange
+├── README.md              # This document
+└── server.py              # Flask API implementation
 ```
 
-## 🚀 Quick Start
+## Running the API Locally
 
-### Método Automático (Recomendado)
+### Quick Start (3 Steps)
 
-```powershell
-# 1. Setup inicial (solo una vez)
-.\setup.ps1
+1. **Install dependencies:**
 
-# 2. Iniciar aplicación (abre API + Web Client automáticamente)
-.\start.ps1
-```
-
-### Método Manual (2 Terminales)
-
-**Terminal 1 - API Server:**
-```powershell
-cd c:\Users\Cris\Desktop\e2e_chat
-.\.venv\Scripts\Activate.ps1
-python run_api.py
-```
-
-**Terminal 2 - Web Client:**
-```powershell
-cd c:\Users\Cris\Desktop\e2e_chat
-.\.venv\Scripts\Activate.ps1
-python clients/web_app.py
-```
-
-**Acceso:** Abre tu navegador en `http://127.0.0.1:5001`
-
-### Verificar Funcionamiento
-
-```powershell
-python -m pytest tests/ -v
-```
-
-**Documentación Completa:** Ver `COMO_EJECUTAR.md`
-
----
-
-## Quick Start
-
-1. **Create virtual environment & install dependencies**
    ```pwsh
-   cd c:\Users\Cris\Desktop\e2e_chat
-   py -3.11 -m venv .venv
-   .venv\Scripts\Activate.ps1
    pip install -r requirements.txt
    ```
 
-2. **Run the API server**
-   ```pwsh
-   $env:FLASK_APP = "app.server"
-   flask run --port 5000
-   ```
-   > Optionally add TLS once you generate certificates (`flask run --cert=cert.pem --key=key.pem`).
+2. **Launch the server:**
 
-3. **Run the web client** (separate terminal)
    ```pwsh
-   .venv\Scripts\Activate.ps1
-   $env:E2E_CHAT_API_BASE = "http://127.0.0.1:5000"
-   py clients\web_app.py
-   ```
-   Open `http://127.0.0.1:5001` in your browser.
+   # HTTP local rápido
+   python iniciar_servidor.py --host 127.0.0.1 --port 5000
 
-4. **Interact like a user**
-   - Register two accounts with phone numbers (e.g. `+56911111111`).
-   - Scan the TOTP URI with Microsoft Authenticator (or equivalent).
-   - Login (leave the TOTP field empty to auto-generate from the locally stored secret).
-   - Add contacts mutually, exchange messages, and observe encrypted payloads via developer tools or Wireshark.
-
-5. **Run the automated tests**
-   ```pwsh
-   pytest
+   # Demostración TLS lista para Wireshark (certificado auto-firmado)
+   python iniciar_servidor.py --tls --host 0.0.0.0 --port 5443
    ```
 
-## Capturing Encrypted Traffic
+   The launcher wraps `create_app()` and exposes convenient flags (`--tls`, `--cert`, `--key`). The legacy
+   `python -m lab7_e2ee_chat.server` entry point remains available if you prefer the classic workflow.
 
-All REST calls can be observed with Wireshark or any HTTP inspector. Messages traverse as Base64-encoded ciphertexts (“ciphertext”, “nonce”, “aad”, “signature”), ensuring that neither server operators nor passive observers can recover plaintexts or keys.
+3. **Choose your interface:**
 
-## Documentation
+   - **Web Client:** Open `http://localhost:5000/ui/` in your browser
+   - **CLI Client:** See commands below
+   - **Automated Tests:** Run `python -m pytest tests/test_flow.py -v`
 
-- `docs/architecture.md` – Module-level description, cryptographic rationale, and threat model.
-- `docs/diagram.mmd` – Mermaid sequence diagram of registration, login, key agreement, and messaging.
-- `docs/testing.md` – How to exercise the platform manually and with pytest, plus guidance for Wireshark captures.
-- `docs/operations.md` – Notes on running with TLS, environment variables, and data hygiene.
+### Web Client (Recommended)
 
-Read them thoroughly before modifying the system; they explain every design decision, including how each class from the lectures is reflected in the code.
+1. Navigate to `http://localhost:5000/ui/`
+2. **Register** with email, name, and password
+3. **Save TOTP secret** – scan the QR or keep the Base32 string safe. The UI stores it encrypted in `localStorage` so you can auto-generar códigos TOTP.
+4. **Login** with email + password + TOTP code. Select the session in the new dropdown to reutilizar tokens en cada formulario.
+5. **Register your device key** (generated with Web Crypto) and **exchange messages** using the contacts sidebar and chat viewer to prove that solo los participantes descifran la conversación.
 
-## Security Notes
+**Features:**
 
-- Passwords are hashed with **SHA3-512** (no salts or PBKDF2 per assignment constraint). Documented trade-offs and mitigation guidance are in `docs/architecture.md`.
-- TOTP secrets and private keys are only returned **once** during registration and persist locally for the client. The API never stores them.
-- Session tokens are HMAC-protected (`SHA3-256`) and include issuance timestamps to prevent replay.
-- Contacts must be mutual before messages are accepted, preventing unsolicited cipher-text spam.
+- Local persistence (tokens, TOTP secrets, PEMs) via `localStorage` for multi-session demos without retyping secrets.
+- Session selector + contactos interactivos para fijar conversaciones y ver burbujas entrantes/salientes descifradas localmente.
+- Generate RSA-2048 keys in browser using Web Crypto API and upload only the public PEM.
+- AES-256-GCM encryption happens locally before sending to the server, which never sees plaintext.
 
-## Next Steps
+### Docker Deployment
 
-- Extend the client to rotate keys (Diffie-Hellman ratchet) for perfect forward secrecy.
-- Integrate TLS certificates issued by a trusted CA for production deployments.
-- Persist data in a hardened datastore (PostgreSQL) with encrypted-at-rest secrets.
-- Expand test coverage with negative cases (expired tokens, tampered signatures).
+```pwsh
+# Build image
+docker build -t tel252-e2ee-chat .
 
-Enjoy experimenting with the TEL252 secure chat stack! Contributions and refinements are welcome—keep the security posture strong.
+# Run container
+docker run -p 5000:5000 `
+  -e CHAT_SESSION_SECRET="your_256bit_secret" `
+  -e CHAT_PASSWORD_SECRET="your_256bit_pepper" `
+  tel252-e2ee-chat
+```
+
+---
+
+## Command-Line Demo Client
+
+The supplied CLI illustrates a full end-to-end flow using only the API surface. Every significant cryptographic operation happens client-side.
+
+### 1. Register Two Accounts
+
+```pwsh
+python -m lab7_e2ee_chat.client_cli register alice@example.com "Alice" StrongPass!123
+python -m lab7_e2ee_chat.client_cli register bob@example.com "Bob" OtherPass!456
+```
+
+Each command outputs a TOTP secret. Scan it with an authenticator app or keep it in a safe place. A local profile is saved under `%USERPROFILE%\.tel252_chat` containing the RSA key pair and other metadata.
+
+### 2. Login and Register Devices
+
+```pwsh
+python -m lab7_e2ee_chat.client_cli login alice@example.com
+python -m lab7_e2ee_chat.client_cli register-device alice@example.com "Alice Laptop"
+
+python -m lab7_e2ee_chat.client_cli login bob@example.com
+python -m lab7_e2ee_chat.client_cli register-device bob@example.com "Bob Desktop"
+```
+
+The login command automatically computes a current TOTP code from the stored secret. The `register-device` command uploads the locally generated RSA-2048 public key to the server.
+
+### 3. List Contacts and Exchange Messages
+
+```pwsh
+python -m lab7_e2ee_chat.client_cli contacts alice@example.com
+python -m lab7_e2ee_chat.client_cli send alice@example.com bob@example.com "Hola Bob, esto está cifrado de extremo a extremo!"
+python -m lab7_e2ee_chat.client_cli inbox bob@example.com
+```
+
+Bob’s inbox command fetches encrypted messages, unwraps the AES session key with his private RSA key, and decrypts the ciphertext locally. The server never learns the plaintext.
+
+### 4. Delete Messages After Reading
+
+```pwsh
+python -m lab7_e2ee_chat.client_cli delete bob@example.com 1
+```
+
+Removes a message from the server once it has been consumed. (Replace `1` with the actual message id printed in the inbox output.)
+
+### Useful Extras
+
+- `python -m lab7_e2ee_chat.client_cli totp alice@example.com` prints the current TOTP code and remaining validity window.
+- Set the environment variable `CHAT_API_BASE` if the Flask server runs on another host or port.
+
+## API Reference
+
+All endpoints reside under `/api` and expect/return JSON.
+
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| `/healthz` | GET | Simple heartbeat probe |
+| `/api/register` | POST | Create a user account. Returns a TOTP secret and metadata. |
+| `/api/login` | POST | Authenticate with password + TOTP; returns session token. |
+| `/api/devices` | POST | Register a device public key (requires `Authorization: Bearer`). |
+| `/api/devices` | GET | List registered devices for the current user. |
+| `/api/users` | GET | Directory of other users and their latest public key. |
+| `/api/users/<identifier>` | GET | Detailed view of a user (public key, display name). |
+| `/api/messages` | POST | Store an encrypted message for a recipient. |
+| `/api/messages` | GET | Retrieve encrypted messages addressed to the caller. |
+| `/api/messages/<id>` | DELETE | Remove a message (ownership enforced). |
+
+### Authentication Protocol
+
+- Session tokens follow a compact `header.payload.signature` format signed with HMAC-SHA256.
+- Tokens expire after 1 hour. Clients should re-authenticate as needed.
+- All protected endpoints require the header `Authorization: Bearer <token>`.
+
+## Cryptographic Design Choices
+
+| Component | Primitive | Parameters | Rationale |
+| --- | --- | --- | --- |
+| Autenticación de contraseñas | HMAC-SHA256 | Llave de 256-bit en el servidor (pepper) | Construcción MAC de Clase 11; evita almacenar salts manteniendo los digests opacos a atacantes. |
+| Second factor | RFC 6238 TOTP | SHA-1, 30s window, ±1 drift | Compatible with authenticator apps; user can audit implementation in `crypto.py`. |
+| Device identity | RSA-2048 + OAEP | SHA-256 padding hash | Widely taught in TEL252, readily interoperable, sufficient security margin. |
+| Content confidentiality | AES-256-GCM | Random 96-bit nonce per message | Provides confidentiality and integrity without manual MAC management. |
+| Session tokens | HMAC-SHA256 | Local 256-bit secret | Simplicity and full transparency instead of opaque JWT black boxes. |
+
+Additional security considerations:
+
+- **Server blindness:** Messages arrive already encrypted. Only the recipient’s private key can unwrap the session key. Even administrators cannot decrypt stored ciphertexts.
+- **Integrity:** AES-GCM tags and OAEP ensure tamper attempts surface immediately.
+- **Replay protection:** Clients delete or mark messages once processed. GCM tags bind the nonce and associated data, making replays detectable.
+- **Associated Data (AAD):** Senders attach `sender=<identifier>` as AAD to prove the sender identity during decryption without revealing plaintext to the server.
+- **Transport security:** For production use, run Flask behind HTTPS. For the lab demo, loopback plaintext is acceptable.
+
+## Database Schema Overview
+
+- **users**: core profile data, password hash artefacts, TOTP secret.
+- **devices**: per-user RSA public keys, allowing multi-device support.
+- **messages**: encrypted payload plus metadata (nonce, tag, optional AAD).
+
+Schema migrations are handled automatically on application start-up.
+
+## Diagram
+
+A full sequence diagram describing registration, login, device provisioning, and message exchange lives in [`docs/architecture.mmd`](docs/architecture.mmd). The file uses Mermaid syntax and can be rendered via VS Code’s Mermaid preview or online editors such as <https://mermaid.live>.
+
+## Testing the Encryption Guarantee
+
+1. **View what the server stores:** Inspect `lab7_e2ee_chat/chat.db` using any SQLite browser. Messages appear only as base64 artefacts.
+2. **Tamper with ciphertexts:** Modify a stored ciphertext manually. The recipient will fail GCM verification and the client will report decryption failure.
+3. **Attempt admin snooping:** Even with database access, the administrator lacks device private keys, so decrypting messages is infeasible.
+
+## TLS Capture Guide (Wireshark)
+
+The dedicated guide in [`docs/CAPTURA_WIRESHARK.md`](docs/CAPTURA_WIRESHARK.md) shows how to run `iniciar_servidor.py --tls`, capture the handshake plus encrypted application data, and explain por qué el analista no puede reconstruir los mensajes pese a contar con el tráfico.
+
+## Extending the Project
+
+- Implement push notifications or WebSocket delivery while retaining the same cryptographic core.
+- Replace RSA with X25519 + XChaCha20-Poly1305 to explore modern primitives.
+- Introduce key rotation and signed pre-keys (Double Ratchet) to move towards Signal’s full protocol.
+
+## Troubleshooting
+
+- If `pycryptodome` is missing, ensure the virtual environment is active before installing.
+- A totp mismatch typically means the local clock differs by more than 30 seconds from the server. Adjust the system clock or adapt the allowed drift in `crypto.verify_totp`.
+- Remove the generated `.session_secret` file to rotate the HMAC key and invalidate all sessions.
+
+---
+This codebase is heavily commented and structured for educational clarity. Dive into the source modules for a guided tour of each applied primitive.
