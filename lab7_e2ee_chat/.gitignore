@@ -4,3 +4,4 @@ __pycache__/
 .venv/
 clients/state/
 data/*.json
+node_modules/
