@@ -9,17 +9,17 @@ El siguiente diagrama ilustra los componentes clave del sistema, dónde residen 
 ```mermaid
 graph TD
     subgraph "Cliente (Navegador Web)"
-        UI[Interfaz de Usuario<br/>(HTML/CSS/JS)]
+        UI["Interfaz de Usuario\n(HTML/CSS/JS)"]
         
         subgraph "Memoria Volátil (JS)"
-            SessionToken[Token de Sesión<br/>(HMAC-SHA256)]
-            PrivKey[Llave Privada RSA-2048<br/>(Nunca sale del cliente)]
-            AESKey[Llaves Efímeras AES-256<br/>(Por mensaje)]
+            SessionToken["Token de Sesión\n(HMAC-SHA256)"]
+            PrivKey["Llave Privada RSA-2048\n(Nunca sale del cliente)"]
+            AESKey["Llaves Efímeras AES-256\n(Por mensaje)"]
         end
         
         subgraph "Operaciones Locales"
-            GenKey[Generación de Llaves<br/>RSA-2048]
-            Encrypt[Cifrado Híbrido<br/>AES-GCM + RSA-OAEP]
+            GenKey["Generación de Llaves\nRSA-2048"]
+            Encrypt["Cifrado Híbrido\nAES-GCM + RSA-OAEP"]
             Decrypt[Descifrado Híbrido]
         end
     end
@@ -33,16 +33,16 @@ graph TD
         Relay[Relay de Mensajes]
         
         subgraph "Criptografía de Servidor"
-            PW_Check[Verificación Password<br/>HMAC-SHA256]
-            TOTP_Check[Verificación 2FA<br/>RFC 6238 (SHA1)]
-            Token_Sign[Firma de Sesión<br/>HMAC-SHA256]
+            PW_Check["Verificación Password\nHMAC-SHA256"]
+            TOTP_Check["Verificación 2FA\nRFC 6238 (SHA1)"]
+            Token_Sign["Firma de Sesión\nHMAC-SHA256"]
         end
     end
 
     subgraph "Base de Datos (SQLite)"
-        Users[Tabla: Users<br/>- ID<br/>- Password Hash (HMAC)<br/>- TOTP Secret]
-        Devices[Tabla: Devices<br/>- Public Key (PEM)<br/>- Device Name]
-        Messages[Tabla: Messages<br/>- Cifrado AES (Base64)<br/>- Llave AES Cifrada (RSA)]
+        Users["Tabla: Users\n- ID\n- Password Hash (HMAC)\n- TOTP Secret"]
+        Devices["Tabla: Devices\n- Public Key (PEM)\n- Device Name"]
+        Messages["Tabla: Messages\n- Cifrado AES (Base64)\n- Llave AES Cifrada (RSA)"]
     end
 
     %% Relaciones
@@ -174,14 +174,14 @@ Este diagrama resume lo que ocurre desde que inicias el servidor hasta que la UI
 
 ```mermaid
 flowchart TD
-    A[Arranque Servidor] --> B[Cargar secretos\n.session_secret y .password_secret]
-    B --> C[Inicializar DB\n(Asegurar tablas SQLite)]
-    C --> D[Construir Flask App\n(rutas API y UI)]
-    D --> E[Exponer /ui/\n(servir index.html)]
-    E --> F[Cliente carga UI\n(HTML/CSS/JS)]
-    F --> G[Bootstrap del Cliente\n(carga sesiones, claves, estado)]
-    G --> H[Usuario se Autentica\n(Login con TOTP obligatorio)]
-    H --> I[Workspace operativo\n(Mensajes, Contactos, Perfil)]
+    A[Arranque Servidor] --> B["Cargar secretos\n.session_secret y .password_secret"]
+    B --> C["Inicializar DB\n(Asegurar tablas SQLite)"]
+    C --> D["Construir Flask App\n(rutas API y UI)"]
+    D --> E["Exponer /ui/\n(servir index.html)"]
+    E --> F["Cliente carga UI\n(HTML/CSS/JS)"]
+    F --> G["Bootstrap del Cliente\n(carga sesiones, claves, estado)"]
+    G --> H["Usuario se Autentica\n(Login con TOTP obligatorio)"]
+    H --> I["Workspace operativo\n(Mensajes, Contactos, Perfil)"]
 ```
 
 Puntos clave:
