@@ -1,17 +1,17 @@
-# TEL252 Lab 7 – End-to-End Encrypted Chat API
+# TEL252 — Laboratorio 7: Chat cifrado de extremo a extremo (E2EE)
 
-This project implements a demonstrable end-to-end encrypted (E2EE) chat experience for TEL252. It combines symmetric and asymmetric cryptography, password hashing, Time-based One-Time Passwords (TOTP), and HMAC-protected session tokens. A lightweight Flask API coordinates authentication, device key management, and message relay without ever seeing plaintext messages.
+Proyecto para TEL252 que demuestra un sistema de mensajería con cifrado de extremo a extremo. Combina criptografía simétrica y asimétrica, derivación de contraseña, TOTP y tokens de sesión firmados con HMAC. La API en Flask coordina autenticación, gestión de claves por dispositivo y relay de mensajes sin nunca ver el plaintext.
 
-## Features at a Glance
+## Características principales
 
-- Account onboarding with HMAC-SHA256 password digests (server-held secret) and RFC 6238 compatible TOTPs.
-- HMAC-SHA256 signed session tokens for stateless authentication.
-- Device public-key registry holding PEM-encoded RSA-2048 keys for every user.
-- Client-driven AES-256-GCM encryption with per-message random session keys.
-- RSA-OAEP wrapping of session keys so only intended recipients can decrypt.
-- SQLite persistence keeping the server self-contained and easy to demo.
-- Command-line demo client that can register, authenticate, exchange keys, send encrypted messages, and decrypt inbox items locally.
-- Extensive inline documentation and separations of concerns to highlight the cryptographic reasoning.
+ - Onboarding con HMAC-SHA256 para digests de contraseña (pepper en el servidor) y TOTP (RFC 6238).
+ - Tokens de sesión firmados con HMAC-SHA256 para autenticar sin estado.
+ - Registro de claves públicas por dispositivo (PEM RSA-2048) para cada usuario.
+ - Cifrado local AES-256-GCM por mensaje; llaves efímeras por cada payload.
+ - Envoltorio de la llave AES con RSA-OAEP para que solo el destinatario pueda descifrarla.
+ - Persistencia en SQLite para demos autocontenidas.
+ - Cliente CLI que demuestra todo el flujo (registro, login con TOTP, registro de dispositivo, envío y recepción).
+ - Documentación inline y diagramas que justifican decisiones criptográficas.
 
 ## Repository Layout
 
@@ -28,17 +28,17 @@ lab7_e2ee_chat/
 └── server.py              # Flask API implementation
 ```
 
-## Running the API Locally
+## Ejecución local de la API
 
-### Quick Start (3 Steps)
+### Inicio rápido (3 pasos)
 
-1. **Install dependencies:**
+1. **Instalar dependencias:**
 
    ```pwsh
    pip install -r requirements.txt
    ```
 
-2. **Launch the server:**
+2. **Iniciar el servidor:**
 
    ```pwsh
    # HTTP local rápido
@@ -48,31 +48,31 @@ lab7_e2ee_chat/
    python iniciar_servidor.py --tls --host 0.0.0.0 --port 5443
    ```
 
-   The launcher wraps `create_app()` and exposes convenient flags (`--tls`, `--cert`, `--key`). The legacy
-   `python -m lab7_e2ee_chat.server` entry point remains available if you prefer the classic workflow.
+   El script envuelve `create_app()` y expone flags convenientes (`--tls`, `--cert`, `--key`). El entry point
+   clásico `python -m lab7_e2ee_chat.server` sigue disponible si prefieres el flujo clásico.
 
-3. **Choose your interface:**
+3. **Elija su interfaz:**
 
-   - **Web Client:** Open `http://localhost:5000/ui/` in your browser
-   - **CLI Client:** See commands below
-   - **Automated Tests:** Run `python -m pytest tests/test_flow.py -v`
+   - **Navegador web:** Abra `http://localhost:5000/ui/` en su navegador.
+   - **CLI:** Consulte los comandos a continuación.
+   - **Pruebas automatizadas:** Ejecute `python -m pytest tests/test_flow.py -v`.
 
-### Web Client (Recommended)
+### Cliente web (recomendado)
 
-1. Navigate to `http://localhost:5000/ui/`
-2. **Register** with email, name, and password
-3. **Save TOTP secret** – scan the QR or keep the Base32 string safe. The UI stores it encrypted in `localStorage` so you can auto-generar códigos TOTP.
-4. **Login** with email + password + TOTP code. Select the session in the new dropdown to reutilizar tokens en cada formulario.
-5. **Register your device key** (generated with Web Crypto) and **exchange messages** using the contacts sidebar and chat viewer to prove that solo los participantes descifran la conversación.
+1. Abra `http://localhost:5000/ui/`.
+2. Regístrese con email, nombre y contraseña.
+3. Guarde el secreto TOTP — escanee el QR o almacene el código base32. La UI conserva el secreto en `localStorage` cifrado para generar códigos TOTP.
+4. Inicie sesión con email+contraseña+TOTP y, si desea, seleccione la sesión en el selector para reutilizar tokens.
+5. Registre la clave pública de su dispositivo generada en el navegador y pruebe enviar/recibir mensajes.
 
 **Features:**
 
 - Local persistence (tokens, TOTP secrets, PEMs) via `localStorage` for multi-session demos without retyping secrets.
 - Session selector + contactos interactivos para fijar conversaciones y ver burbujas entrantes/salientes descifradas localmente.
-- Generate RSA-2048 keys in browser using Web Crypto API and upload only the public PEM.
+- Genera llaves RSA-2048 en el navegador con Web Crypto API y sube solamente la clave pública en formato PEM.
 - AES-256-GCM encryption happens locally before sending to the server, which never sees plaintext.
 
-### Docker Deployment
+### Despliegue con Docker
 
 ```pwsh
 # Build image
@@ -87,20 +87,26 @@ docker run -p 5000:5000 `
 
 ---
 
-## Command-Line Demo Client
+## Cliente de línea de comandos (demo)
 
-The supplied CLI illustrates a full end-to-end flow using only the API surface. Every significant cryptographic operation happens client-side.
+El CLI incluido ilustra el flujo completo usando la API; todas las operaciones criptográficas críticas ocurren en el cliente.
 
-### 1. Register Two Accounts
+### Nota sobre TOTP y pepper
+
+El servidor genera un secreto TOTP (Base32, 160 bits) que el usuario debe añadir a su app autenticadora. El login siempre solicita el código generado por TOTP (RFC 6238) además de la contraseña.
+
+La contraseña se procesa en el servidor con HMAC-SHA256 usando un `password_secret` (pepper). Esto significa que, si la base de datos fuera filtrada, las contraseñas no pueden verificarse sin conocer el pepper. Sin embargo, para producción preferimos KDFs (Argon2/PBKDF2) con un salt único por usuario.
+
+### 1. Registrar dos cuentas
 
 ```pwsh
 python -m lab7_e2ee_chat.client_cli register alice@example.com "Alice" StrongPass!123
 python -m lab7_e2ee_chat.client_cli register bob@example.com "Bob" OtherPass!456
 ```
 
-Each command outputs a TOTP secret. Scan it with an authenticator app or keep it in a safe place. A local profile is saved under `%USERPROFILE%\.tel252_chat` containing the RSA key pair and other metadata.
+Cada comando muestra el `totp_secret` generado por el servidor. Escanéalo con Google Authenticator/Authy o guárdalo de forma segura. Se guarda un perfil local en `%USERPROFILE%\.tel252_chat` con el par RSA y metadatos.
 
-### 2. Login and Register Devices
+### 2. Iniciar sesión y registrar dispositivos
 
 ```pwsh
 python -m lab7_e2ee_chat.client_cli login alice@example.com
@@ -110,9 +116,9 @@ python -m lab7_e2ee_chat.client_cli login bob@example.com
 python -m lab7_e2ee_chat.client_cli register-device bob@example.com "Bob Desktop"
 ```
 
-The login command automatically computes a current TOTP code from the stored secret. The `register-device` command uploads the locally generated RSA-2048 public key to the server.
+El comando de login calcula el código TOTP vigente usando el secreto guardado. El comando `register-device` sube la clave pública RSA-2048 generada localmente al servidor.
 
-### 3. List Contacts and Exchange Messages
+### 3. Listar contactos e intercambiar mensajes
 
 ```pwsh
 python -m lab7_e2ee_chat.client_cli contacts alice@example.com
@@ -130,10 +136,10 @@ python -m lab7_e2ee_chat.client_cli delete bob@example.com 1
 
 Removes a message from the server once it has been consumed. (Replace `1` with the actual message id printed in the inbox output.)
 
-### Useful Extras
+### Extras útiles
 
-- `python -m lab7_e2ee_chat.client_cli totp alice@example.com` prints the current TOTP code and remaining validity window.
-- Set the environment variable `CHAT_API_BASE` if the Flask server runs on another host or port.
+- `python -m lab7_e2ee_chat.client_cli totp alice@example.com` imprime el código TOTP activo y la ventana de validez.
+- Establece la variable de entorno `CHAT_API_BASE` si el servidor Flask corre en otra dirección o puerto.
 
 ## API Reference
 
@@ -144,7 +150,7 @@ All endpoints reside under `/api` and expect/return JSON.
 | `/healthz` | GET | Simple heartbeat probe |
 | `/api/register` | POST | Create a user account. Returns a TOTP secret and metadata. |
 | `/api/login` | POST | Authenticate with password + TOTP; returns session token. |
-| `/api/devices` | POST | Register a device public key (requires `Authorization: Bearer`). |
+| `/api/devices` | POST | Registrar una clave pública de dispositivo (requiere `Authorization: Bearer`). |
 | `/api/devices` | GET | List registered devices for the current user. |
 | `/api/users` | GET | Directory of other users and their latest public key. |
 | `/api/users/<identifier>` | GET | Detailed view of a user (public key, display name). |

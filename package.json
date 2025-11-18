@@ -1,0 +1,14 @@
+{
+  "name": "tel252-e2ee-chat",
+  "version": "1.0.0",
+  "description": "Scripts to export mermaid diagrams and capture UI screenshots for TEL252 lab",
+  "private": true,
+  "scripts": {
+    "export-diagrams": "mmdc -i docs/DIAGRAMAS_TECNICOS.md -o docs/diagrama_arquitectura.svg && mmdc -i docs/DIAGRAMA_FLUJO_COMPLETO.md -o docs/diagrama_flujo.svg",
+    "screenshot-ui": "node tools/screenshot.js"
+  },
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^9.0.0",
+    "puppeteer": "^21.0.0"
+  }
+}

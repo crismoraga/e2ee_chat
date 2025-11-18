@@ -1,26 +1,79 @@
-# TEL252 Lab 7 – End-to-End Encrypted Chat API
+## Índice
 
-This project implements a demonstrable end-to-end encrypted (E2EE) chat experience for TEL252. It combines symmetric and asymmetric cryptography, password hashing, Time-based One-Time Passwords (TOTP), and HMAC-protected session tokens. A lightweight Flask API coordinates authentication, device key management, and message relay without ever seeing plaintext messages.
+- [Descripción del proyecto](#descripci%C3%B3n-del-proyecto)
+- [Características principales](#caracter%C3%ADsticas-principales)
+- [Diagramas y flujo técnico](#diagramas-y-flujo-t%C3%A9cnico)
+- [Ejecución local de la API](#ejecuci%C3%B3n-local-de-la-api)
+- [Cliente de línea de comandos (demo)](#cliente-de-l%C3%ADnea-de-comandos-demo)
+- [Referencia de la API](#referencia-de-la-api)
+- [Elección de primitivas y parámetros](#elecci%C3%B3n-de-primitivas-y-par%C3%A1metros)
+- [Evaluación de seguridad y amenazas](#evaluaci%C3%B3n-de-seguridad-y-amenazas)
+- [Referencias académicas y normativas](#referencias-acad%C3%A9micas-y-normativas)
+- [Licencia](#licencia)
+# TEL252 — Laboratorio 7: Chat Cifrado de Extremo a Extremo (E2EE)
 
-## Features at a Glance
+[![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+[![Diagramas técnicos](https://img.shields.io/badge/Diagrams-Technical-blue?logo=mermaid)](./docs/DIAGRAMAS_TECNICOS.md)
+[![UI demo](https://img.shields.io/badge/UI-Demo-green?logo=html5)](http://localhost:5000/ui/)
+[![Wireshark capture](https://img.shields.io/badge/Wireshark-Capture-yellow?logo=wireshark)](./docs/CAPTURA_WIRESHARK.md)
+[![Python](https://img.shields.io/badge/python-3.11-blue?logo=python&logoColor=fff)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/flask-2.2.0-green?logo=flask&logoColor=fff)](https://palletsprojects.com/p/flask/)
+[![CI](https://github.com/crismoraga/e2ee_chat/actions/workflows/ci.yml/badge.svg)](https://github.com/crismoraga/e2ee_chat/actions/workflows/ci.yml)
+[![Pages](https://github.com/crismoraga/e2ee_chat/actions/workflows/ci.yml/badge.svg)](https://crismoraga.github.io/e2ee_chat/)
+[![coverage](https://img.shields.io/codecov/c/github/crismoraga/e2ee_chat/main.svg)](https://codecov.io/gh/crismoraga/e2ee_chat)
+[![linter](https://github.com/crismoraga/e2ee_chat/actions/workflows/ci.yml/badge.svg)](https://github.com/github/super-linter)
 
-- Account onboarding with HMAC-SHA256 password digests (server-held secret) and RFC 6238 compatible TOTPs.
-- HMAC-SHA256 signed session tokens for stateless authentication.
-- Device public-key registry holding PEM-encoded RSA-2048 keys for every user.
-- Client-driven AES-256-GCM encryption with per-message random session keys.
-- RSA-OAEP wrapping of session keys so only intended recipients can decrypt.
-- SQLite persistence keeping the server self-contained and easy to demo.
-- Command-line demo client that can register, authenticate, exchange keys, send encrypted messages, and decrypt inbox items locally.
-- Extensive inline documentation and separations of concerns to highlight the cryptographic reasoning.
 
-## Diagrams and Technical Flow
+Proyecto académico para TEL252 — Criptografía y Seguridad de la Información (Profesor Daniel Espinoza). Este repositorio demuestra un sistema de mensajería con cifrado de extremo a extremo (E2EE). Su objetivo es didáctico: mostrar las decisiones criptográficas, la separación de responsabilidades entre cliente-servidor y ejemplos de integración (web + CLI).
 
-For a deep dive into the architecture, cryptographic responsibilities, and the end-to-end message flow (including the startup boot sequence), see:
+Autores: Sergio Ehlen · Gabriela González · Cristóbal Moraga.
 
-- `docs/DIAGRAMAS_TECNICOS.md` – Mermaid diagrams for:
-   - Architecture and crypto layering (client vs server vs DB)
-   - Step-by-step message lifecycle (register → login → keys → send/receive)
-   - Boot sequence (server startup → UI → workspace)
+- ## Descripción del proyecto
+
+- Resumen rápido:
+
+- Cliente web + API Flask; mensajes cifrados localmente; servidor almacena únicamente blobs cifrados.
+- Autenticación: contraseña derivada con HMAC-SHA256 (pepper) + TOTP (RFC 6238) obligatorio.
+- Encripción: AES-256-GCM para contenido + RSA-2048-OAEP para envolver llaves de sesión.
+
+## Características principales
+
+ - Onboarding de cuentas con HMAC-SHA256 para los digests de contraseña (secret del servidor) y TOTP (RFC 6238) obligatorio.
+    - Nota: en este proyecto el `password_secret` (pepper) se usa como clave para HMAC en el servidor. La idea de un pepper es añadir una segunda capa secreta al digest — a diferencia del salt (que se almacena con el digest), el pepper debe permanecer secreto fuera de la base de datos. En producción, preferimos un KDF con salt por usuario (Argon2/PBKDF2) y guardar pepper en un HSM si se requiere.
+    - TOTP (RFC 6238): el servidor genera un secreto (20 bytes), el cual se codifica Base32 y se muestra como QR para que el usuario lo registre en su app (p. ej., Google Authenticator). RFC 6238 define el uso de HMAC y un contador de tiempo (30s) para generar códigos de un solo uso.
+- Tokens de sesión firmados con HMAC-SHA256 para autenticar requests sin mantener estado en el servidor.
+- Registro de claves públicas por dispositivo (PEM RSA-2048) para cada usuario.
+- Cifrado local con AES-256-GCM por mensaje; llaves efímeras para cada payload.
+- Envoltorio de la llave de sesión con RSA-OAEP (SHA-256) para asegurar que solo el destinatario pueda recuperar la llave AES.
+- Persistencia SQLite para un demo autocontenido y reproducible en clase.
+- Cliente CLI que demuestra registro, autenticación con TOTP, registro de dispositivos y descifrado de bandeja local.
+- Documentación en código y diagramas técnicos para respaldar decisiones criptográficas.
+
+### Nota técnica: "pepper" y cómo lo usamos
+
+En este proyecto usamos un enfoque didáctico para explicar diferencias entre *salt* y *pepper*:
+
+- Salt: valor aleatorio por usuario, almacenado junto al digest, que evita ataques por hashes pre-calculados (rainbow tables). En producción recomendamos usar PBKDF2/Argon2 con salt.
+- Pepper: secreto global del servidor que se añade a la derivación de la contraseña (por ejemplo, HMAC-SHA256(password_secret, password)). Un atacante con acceso a la DB no puede verificar contraseñas offline sin conocer el pepper, pero si el servidor es comprometido, el pepper también se pierde. Pepper es útil para laboratorio y pruebas de conceptos pero **no** substituye un buen KDF.
+
+Implementación en este repo: en `server.py` y `config.py` el `password_secret` se usa como pepper y se obtiene de variables de entorno o archivos de configuración del servidor.
+
+## Diagramas y flujo técnico
+
+Para un análisis en profundidad de la arquitectura y el flujo E2EE ver:
+
+`docs/DIAGRAMAS_TECNICOS.md` – Diagramas Mermaid y explicación del flujo, cubriendo:
+
+- Arquitectura y responsabilidades criptográficas (cliente/servidor/DB).
+- Flujo completo de mensaje (registro, login, publicación de llaves, envío/recepción).
+- Secuencia de arranque (server -> UI -> workspace).
+ 
+Si los diagramas se han exportado, verás imágenes en `docs/`:
+
+![Arquitectura](docs/diagrama_arquitectura.svg)
+![Flujo completo](docs/diagrama_flujo.svg)
+![Screenshot UI](docs/ui_screenshot.png)
+<!-- (English duplicates removed) -->
 
 ## Repository Layout
 
@@ -37,17 +90,17 @@ lab7_e2ee_chat/
 └── server.py              # Flask API implementation
 ```
 
-## Running the API Locally
+## Ejecución local de la API
 
-### Quick Start (3 Steps)
+### Inicio rápido (3 pasos)
 
-1. **Install dependencies:**
+1. **Instalar dependencias:**
 
    ```pwsh
    pip install -r requirements.txt
    ```
 
-2. **Launch the server:**
+2. **Iniciar el servidor:**
 
    ```pwsh
    # HTTP local rápido
@@ -57,22 +110,22 @@ lab7_e2ee_chat/
    python iniciar_servidor.py --tls --host 0.0.0.0 --port 5443
    ```
 
-   The launcher wraps `create_app()` and exposes convenient flags (`--tls`, `--cert`, `--key`). The legacy
-   `python -m lab7_e2ee_chat.server` entry point remains available if you prefer the classic workflow.
+   El script envuelve `create_app()` y expone flags convenientes (`--tls`, `--cert`, `--key`). El
+   entry point clásico `python -m lab7_e2ee_chat.server` sigue disponible para flujos tradicionales.
 
-3. **Choose your interface:**
+3. **Elija la interfaz:**
 
-   - **Web Client:** Open `http://localhost:5000/ui/` in your browser
-   - **CLI Client:** See commands below
-   - **Automated Tests:** Run `python -m pytest tests/test_flow.py -v`
+   - **Navegador web:** abra `http://localhost:5000/ui/` en su navegador
+   - **CLI:** consulte los comandos a continuación
+   - **Pruebas automatizadas:** ejecute `python -m pytest tests/test_flow.py -v`
 
-### Web Client (Recommended)
+### Cliente web (recomendado)
 
-1. Navigate to `http://localhost:5000/ui/`
-2. **Register** with email, name, and password
-3. **Save TOTP secret** – scan the QR or keep the Base32 string safe. The UI stores it encrypted in `localStorage` so you can auto-generar códigos TOTP.
-4. **Login** with email + password + TOTP code. Select the session in the new dropdown to reutilizar tokens en cada formulario.
-5. **Register your device key** (generated with Web Crypto) and **exchange messages** using the contacts sidebar and chat viewer to prove that solo los participantes descifran la conversación.
+1. Abra `http://localhost:5000/ui/`
+2. **Regístrese** con su correo, nombre y contraseña
+3. **Guarde el secreto TOTP** — escanee el QR o guarde la cadena Base32 de forma segura. La UI almacena el secreto cifrado en `localStorage` para generar códigos TOTP automáticamente.
+4. **Inicie sesión** con correo + contraseña + código TOTP. Puede seleccionar la sesión en el desplegable para reutilizar tokens.
+5. **Registre la clave pública del dispositivo** (generada por Web Crypto) y envíe mensajes cifrados — se mostrará la conversación descifrada solo en los clientes destinatarios.
 
 **Features:**
 
@@ -81,7 +134,7 @@ lab7_e2ee_chat/
 - Generate RSA-2048 keys in browser using Web Crypto API and upload only the public PEM.
 - AES-256-GCM encryption happens locally before sending to the server, which never sees plaintext.
 
-### Docker Deployment
+### Despliegue con Docker
 
 ```pwsh
 # Build image
@@ -96,7 +149,7 @@ docker run -p 5000:5000 `
 
 ---
 
-## Command-Line Demo Client
+## Cliente de línea de comandos (demo)
 
 The supplied CLI illustrates a full end-to-end flow using only the API surface. Every significant cryptographic operation happens client-side.
 
@@ -139,12 +192,12 @@ python -m lab7_e2ee_chat.client_cli delete bob@example.com 1
 
 Removes a message from the server once it has been consumed. (Replace `1` with the actual message id printed in the inbox output.)
 
-### Useful Extras
+### Extras útiles
 
-- `python -m lab7_e2ee_chat.client_cli totp alice@example.com` prints the current TOTP code and remaining validity window.
+- `python -m lab7_e2ee_chat.client_cli totp alice@example.com` imprime el código TOTP actual y la ventana de validez restante.
 - Set the environment variable `CHAT_API_BASE` if the Flask server runs on another host or port.
 
-## API Reference
+## Referencia de la API
 
 All endpoints reside under `/api` and expect/return JSON.
 
@@ -161,31 +214,66 @@ All endpoints reside under `/api` and expect/return JSON.
 | `/api/messages` | GET | Retrieve encrypted messages addressed to the caller. |
 | `/api/messages/<id>` | DELETE | Remove a message (ownership enforced). |
 
-### Authentication Protocol
+### Protocolo de Autenticación
 
 - Session tokens follow a compact `header.payload.signature` format signed with HMAC-SHA256.
 - Tokens expire after 1 hour. Clients should re-authenticate as needed.
 - All protected endpoints require the header `Authorization: Bearer <token>`.
 
-## Cryptographic Design Choices
 
-| Component | Primitive | Parameters | Rationale |
+## Elección de primitivas y parámetros
+
+En la tabla siguiente se resumen las decisiones criptográficas y por qué se eligieron dichos parámetros en el laboratorio:
+
+| Componente | Primitiva | Parámetro | Razonamiento |
 | --- | --- | --- | --- |
-| Autenticación de contraseñas | HMAC-SHA256 | Llave de 256-bit en el servidor (pepper) | Construcción MAC de Clase 11; evita almacenar salts manteniendo los digests opacos a atacantes. |
-| Second factor | RFC 6238 TOTP | SHA-1, 30s window, ±1 drift | Compatible with authenticator apps; user can audit implementation in `crypto.py`. |
-| Device identity | RSA-2048 + OAEP | SHA-256 padding hash | Widely taught in TEL252, readily interoperable, sufficient security margin. |
-| Content confidentiality | AES-256-GCM | Random 96-bit nonce per message | Provides confidentiality and integrity without manual MAC management. |
-| Session tokens | HMAC-SHA256 | Local 256-bit secret | Simplicity and full transparency instead of opaque JWT black boxes. |
+| Autenticación de contraseñas | HMAC-SHA256 | Llave de 256 bits (servidor) | Usada como "pepper" centralizado — simplifica el laboratorio pero no sustituye a PBKDF2/Argon2 en producción. |
+| Factor secundario | RFC 6238 (TOTP) | SHA-1, 30 s | Compatible con Google Authenticator; implementado por claridad en el curso. |
+| Identidad de dispositivos | RSA-2048 + OAEP | e=65537; OAEP con SHA-256 | Buen equilibrio entre didáctica y seguridad; OAEP evita ataques por padding. |
+| Confidencialidad del contenido | AES-256-GCM | 256-bit key; nonce 96-bit; tag 128-bit | AEAD recomendado para evitar fallos de MAC + de autenticación combinados. |
+| Firma/Firma de sesión | HMAC-SHA256 | 256-bit key | Simplicidad y verificación eficiente; se usa para tokens y protecciones de sesión. |
 
-Additional security considerations:
+Notas técnicas:
 
-- **Server blindness:** Messages arrive already encrypted. Only the recipient’s private key can unwrap the session key. Even administrators cannot decrypt stored ciphertexts.
-- **Integrity:** AES-GCM tags and OAEP ensure tamper attempts surface immediately.
-- **Replay protection:** Clients delete or mark messages once processed. GCM tags bind the nonce and associated data, making replays detectable.
-- **Associated Data (AAD):** Senders attach `sender=<identifier>` as AAD to prove the sender identity during decryption without revealing plaintext to the server.
-- **Transport security:** For production use, run Flask behind HTTPS. For the lab demo, loopback plaintext is acceptable.
+- HMAC: HMAC(K, m) = H((K ⊕ opad) || H((K ⊕ ipad) || m))
+- TOTP: T = floor(UnixTime / 30); code = HOTP(secret, T) (RFC 6238)
+- AES-GCM: utiliza CTR + GMAC internamente; el tag protege la integridad y los datos adicionales (AAD)
+- RSA-OAEP (RFC 8017): usa MGF1 y un hash (SHA-256) para derivar máscaras; evita ataques de texto cifrado elegido.
 
-## Database Schema Overview
+Consecuencias de diseño (qué protege y qué no):
+
+- Confidencialidad E2EE: solo el cliente posee la private key; servidor almacena blobs cifrados.
+- Integridad y autenticidad por AES-GCM + HMAC en tokens; sin embargo, no se proporciona firma de mensajes que permita no repudio.
+- Forward secrecy: NO implementado — si la private key se compromete, mensajes antiguos pueden descifrarse. Use X3DH/Double Ratchet para forward secrecy.
+
+Recomendaciones para producción:
+
+1. Reemplazar HMAC-password digests por Argon2 o PBKDF2 con salt único por usuario.
+2. Implementar key-rotation y firma de pre-keys (X3DH/Double Ratchet) para forward secrecy.
+3. Considerar Ed25519 para firma y X25519 para intercambio ECDH (menor huella y más seguridad a igual campo).
+
+## Evaluación de seguridad y amenazas
+
+### Modelo de amenazas (suposiciones)
+
+- Clientes de confianza: se asume que el navegador del cliente y la máquina del usuario no están comprometidos.
+- Servidor honesto
+aunque curioso: el servidor puede ver metadatos (emisor, receptor, timestamp) pero no puede descifrar mensajes.
+- Adversario activo en la red: mitigado por TLS si está habilitado; sin TLS el tráfico puede ser interceptado/localmente manipulado.
+- Compromiso de dispositivos: si la llave privada es filtrada, se pone en riesgo la confidencialidad de mensajes pasados (no forward secrecy).
+
+### Tabla de propiedades y control de riesgos
+
+| Propiedad | ¿Garantizada? | Comentarios |
+| --- | --- | --- |
+| Confidencialidad E2EE | Sí | La llave privada reside en cliente; el servidor sólo almacena blobs cifrados. |
+| Integridad | Sí | AES-GCM tag (128 bits) y OAEP para evitar manipulación silenciosa de clave. |
+| Autenticación | Sí (Contraseña + TOTP) | Aumenta la resistencia a robo de contraseñas y login no autorizado. |
+| Forward secrecy | No | Para mensajes antiguos, el compromiso de la private key afecta la confidencialidad. |
+| No repudio | Parcial | No hay firma de mensajes por defecto; se pueden añadir RSA-PSS o Ed25519 si se requiere. |
+
+
+## Esquema de la base de datos
 
 - **users**: core profile data, password hash artefacts, TOTP secret.
 - **devices**: per-user RSA public keys, allowing multi-device support.
@@ -193,31 +281,108 @@ Additional security considerations:
 
 Schema migrations are handled automatically on application start-up.
 
-## Diagram
+## Diagramas y representación visual
 
-A full sequence diagram describing registration, login, device provisioning, and message exchange lives in [`docs/architecture.mmd`](docs/architecture.mmd). The file uses Mermaid syntax and can be rendered via VS Code’s Mermaid preview or online editors such as <https://mermaid.live>.
+Un diagrama en `docs/DIAGRAMAS_TECNICOS.md` y `docs/DIAGRAMA_FLUJO_COMPLETO.md` describe el flujo completo (registro, login, provisión de claves y envío de mensajes). Estos ficheros usan sintaxis Mermaid y pueden verse con la extensión Mermaid en VS Code o en <https://mermaid.live>.
 
-## Testing the Encryption Guarantee
+### Exportar diagramas a PNG/SVG (local / CI)
 
-1. **View what the server stores:** Inspect `lab7_e2ee_chat/chat.db` using any SQLite browser. Messages appear only as base64 artefacts.
-2. **Tamper with ciphertexts:** Modify a stored ciphertext manually. The recipient will fail GCM verification and the client will report decryption failure.
-3. **Attempt admin snooping:** Even with database access, the administrator lacks device private keys, so decrypting messages is infeasible.
+Para crear imágenes estáticas útiles en presentaciones o documentación, exporte con Mermaid CLI. El repositorio incluye `package.json` con un script `export-diagrams` (usa `@mermaid-js/mermaid-cli`).
 
-## TLS Capture Guide (Wireshark)
+```bash
+npm install -g @mermaid-js/mermaid-cli
+mmdc -i docs/DIAGRAMAS_TECNICOS.md -o docs/diagrama_arquitectura.svg
+```
 
-The dedicated guide in [`docs/CAPTURA_WIRESHARK.md`](docs/CAPTURA_WIRESHARK.md) shows how to run `iniciar_servidor.py --tls`, capture the handshake plus encrypted application data, and explain por qué el analista no puede reconstruir los mensajes pese a contar con el tráfico.
+O usando npm (local):
 
-## Extending the Project
+```pwsh
+npm install
+npm run export-diagrams
+```
+
+La acción de CI `CI` exportará los diagramas y tomará una captura de la UI, subiendo las imágenes al repositorio (si la acción tiene permiso para pushear). Si deseas desactivar la subida puedes editar `.github/workflows/ci.yml`.
+
+## Pruebas de la garantia E2EE (Pruebas manuales)
+
+1. **Ver qué almacena el servidor:** Abra `lab7_e2ee_chat/chat.db` con cualquier navegador SQLite. Los mensajes aparecen como artefactos base64.
+2. **Alteración manual de ciphertexts:** Modifique un ciphertext almacenado y observe cómo el receptor falla la verificación GCM; la integración detectará la manipulación.
+3. **Intento de espionaje por administrador:** Aunque un administrador tenga DB local, sin las llaves privadas de dispositivo no podrá reconstruir el plaintext.
+
+## Captura TLS (Wireshark)
+
+La guía dedicada en [`docs/CAPTURA_WIRESHARK.md`](docs/CAPTURA_WIRESHARK.md) muestra cómo ejecutar `iniciar_servidor.py --tls`, capturar el handshake y el tráfico cifrado y explicar por qué no es posible reconstruir los mensajes sin las llaves privadas.
+
+## Extensiones y trabajo futuro
 
 - Implement push notifications or WebSocket delivery while retaining the same cryptographic core.
 - Replace RSA with X25519 + XChaCha20-Poly1305 to explore modern primitives.
 - Introduce key rotation and signed pre-keys (Double Ratchet) to move towards Signal’s full protocol.
 
-## Troubleshooting
+## Depuración y preguntas frecuentes
 
 - If `pycryptodome` is missing, ensure the virtual environment is active before installing.
 - A totp mismatch typically means the local clock differs by more than 30 seconds from the server. Adjust the system clock or adapt the allowed drift in `crypto.verify_totp`.
 - Remove the generated `.session_secret` file to rotate the HMAC key and invalidate all sessions.
 
 ---
-This codebase is heavily commented and structured for educational clarity. Dive into the source modules for a guided tour of each applied primitive.
+Si usas este repositorio para tu proyecto, referencia: TEL252 — Criptografía y seguridad (Profesor: Daniel Espinoza). Para preguntas o contribuciones, abrid issues o contactad a los autores:
+
+- Sergio Ehlen — <sergio@example.edu>
+- Gabriela González — <gabriela@example.edu>
+- Cristóbal Moraga — <cristobal@example.edu>
+
+El repositorio está preparado para demostraciones en clase y para ensayos de seguridad controlada. Si lo usas en producción, sigue las recomendaciones de la sección "Criptografía en detalle".
+
+## Cómo citar / Referenciar
+
+Si este material se utiliza en informes o presentaciones del curso TEL252, cite el proyecto así:
+
+> Sergio Ehlen, Gabriela González, Cristóbal Moraga. "TEL252 - Laboratorio 7: Chat E2EE" (2025). Código y documentación.
+
+
+## Referencias académicas y normativas
+
+- RFC 2104 — HMAC: [https://tools.ietf.org/html/rfc2104](https://tools.ietf.org/html/rfc2104)
+- RFC 6238 — TOTP: [https://tools.ietf.org/html/rfc6238](https://tools.ietf.org/html/rfc6238)
+- RFC 8017 — RSA-OAEP/PKCS#1: [https://tools.ietf.org/html/rfc8017](https://tools.ietf.org/html/rfc8017)
+- NIST SP 800-38D — AES-GCM: [https://csrc.nist.gov/publications/detail/sp/800-38d/final](https://csrc.nist.gov/publications/detail/sp/800-38d/final)
+
+### TOTP (RFC 6238) - explicación extendida
+
+TOTP (Time-based One-Time Password) es una extensión del algoritmo HOTP (RFC 4226) que usa el tiempo como contador. La generación de códigos implica:
+
+1. El servidor genera un secreto aleatorio (20 bytes, 160 bits) y lo codifica en Base32. Ese secreto se entrega al usuario al registrarse.
+2. El cliente (app de autenticación) y el servidor calculan el mismo contador T = floor(UnixTime / 30).
+3. Se calcula HMAC-SHA1(secret, T) y se aplica "dynamic truncation" para obtener 6 dígitos.
+4. Normalmente se permite una ventana de tolerancia de ±1 intervalos (±30s) para mitigar desincronización de relojes.
+
+Ventajas: compatibilidad con apps estándar (Google Authenticator, Authy). Limitaciones: depende de sincronización horaria y no sustituye la seguridad del canal de registro del secreto.
+
+## Licencia
+
+Este proyecto se publica bajo la licencia MIT. Consultar `LICENSE` para los términos y condiciones.
+
+## Contribuciones
+
+Si quieres contribuir con este trabajo para TEL252 (parche, bugfix, diagrama, mejoras criptográficas) abre un Pull Request. Recomendaciones:
+
+- Ejecuta `npm install` y `npm run export-diagrams` localmente para validar los diagrama Mermaid.
+- Ejecuta `python -m pytest -q` para validar tests antes de crear el PR.
+- Añade tests para nuevas funcionalidades; la CI ejecutará pytest y verificará cobertura.
+- Para cambios en documentación, asegúrate de respetar el formato Markdown y revisa el linter en local: `npx markdownlint-cli docs/*.md`.
+
+### Habilitar Codecov
+
+Si quieres publicar coverage en Codecov, registra el repositorio en [https://codecov.io](https://codecov.io) y añade el token en Secrets del repositorio como `CODECOV_TOKEN`. La acción en CI `coverage` subirá el reporte automáticamente. Para repositorios públicos Codecov puede funcionar sin token; en repos privados, el token es necesario.
+
+## Seguridad y despliegue
+
+- Variables de entorno recomendadas: `CHAT_SESSION_SECRET` (256 bits), `CHAT_PASSWORD_SECRET` (pepper), `FLASK_ENV=production` en despliegue.
+- Usa HTTPS en producción. La demo con `--tls` sirve para pruebas y para capturar tráfico en Wireshark.
+- Controla permisos y rotación de llaves privadas: no almacenes private keys en el servidor.
+
+## Activar Codecov (opcional)
+
+El workflow de CI ya genera cobertura local (`pytest --cov`) y usa `codecov/codecov-action` para subir el reporte. Si el repositorio está en Codecov, añade `CODECOV_TOKEN` a los Secrets para activar el upload automático.
+
