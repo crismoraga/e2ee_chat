@@ -48,23 +48,23 @@ graph TD
     %% Relaciones
     UI --> GenKey
     GenKey --> PrivKey
-    GenKey -->|Public Key| HTTP
+    GenKey -->|"Public Key"| HTTP
     
-    UI -->|Login (User, Pass, TOTP)| HTTP
+    UI -->|"Login (User, Pass, TOTP)"| HTTP
     HTTP --> AuthLayer
     
     AuthLayer --> PW_Check
     AuthLayer --> TOTP_Check
     AuthLayer --> Token_Sign
     
-    Token_Sign -->|Token| UI
+    Token_Sign -->|"Token"| UI
     
-    UI -->|Mensaje Cifrado| HTTP
+    UI -->|"Mensaje Cifrado"| HTTP
     HTTP --> Relay
     Relay --> Messages
     
-    Devices -->|Public Key| Relay
-    Relay -->|Public Key| UI
+    Devices -->|"Public Key"| Relay
+    Relay -->|"Public Key"| UI
     
     Users -.-> PW_Check
     Users -.-> TOTP_Check
