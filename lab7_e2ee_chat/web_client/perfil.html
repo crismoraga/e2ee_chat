@@ -27,26 +27,13 @@
             <ul id="session-list" class="session-list"></ul>
         </article>
         <article>
-            <h2>Seguridad de Cuenta</h2>
-            <div class="security-controls">
-                <div class="totp-setup">
-                    <h3>Autenticación de Dos Factores (2FA)</h3>
-                    <p class="hint">Escanea este código con tu aplicación autenticadora (Google Authenticator, Authy, etc).</p>
-                    <div id="qrcode-container" class="qrcode-box"></div>
-                    <button id="show-qr-btn" class="primary">Mostrar Código QR</button>
-                    <p id="totp-secret-display" class="code-display hidden"></p>
-                </div>
-                
-                <div class="key-status-box">
-                    <h3>Llaves de Cifrado</h3>
-                    <p id="keys-status">Verificando...</p>
-                    <button id="regen-key" class="ghost" type="button">Regenerar llaves</button>
-                </div>
-            </div>
+            <h2>Estado de llaves locales</h2>
+            <p id="keys-status">Verificando...</p>
+            <button id="regen-key" class="primary" type="button">Regenerar llaves y registrar</button>
+            <p id="mfa-status" class="hint">Comprobando secreto TOTP...</p>
         </article>
     </section>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="js/core.js" defer></script>
     <script src="js/workspace.js" defer></script>
 </body>

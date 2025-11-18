@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from flask import Flask, jsonify, request, send_from_directory
-import urllib.parse
 
 from . import crypto
 from .config import load_password_secret, load_session_secret
@@ -151,30 +150,6 @@ def create_app(database: Optional[Database] = None) -> Flask:
                 },
             }
         )
-
-    @app.get("/api/totp/setup")
-    @login_required
-    def totp_setup(*, user, **_):
-        """Return the TOTP secret and an otpauth URL for QR code generation."""
-        secret = user["totp_secret"]
-        identifier = user["identifier"]
-        issuer = "TEL252"
-        
-        # otpauth://totp/Issuer:Account?secret=...&issuer=...
-        label = f"{issuer}:{identifier}"
-        params = {
-            "secret": secret,
-            "issuer": issuer,
-            "algorithm": "SHA1",
-            "digits": 6,
-            "period": 30,
-        }
-        otpauth_url = f"otpauth://totp/{urllib.parse.quote(label)}?{urllib.parse.urlencode(params)}"
-        
-        return jsonify({
-            "secret": secret,
-            "otpauth_url": otpauth_url
-        })
 
     # ---------------------------------------------------------------
     # Device / key management

@@ -13,15 +13,6 @@ This project implements a demonstrable end-to-end encrypted (E2EE) chat experien
 - Command-line demo client that can register, authenticate, exchange keys, send encrypted messages, and decrypt inbox items locally.
 - Extensive inline documentation and separations of concerns to highlight the cryptographic reasoning.
 
-## Diagrams and Technical Flow
-
-For a deep dive into the architecture, cryptographic responsibilities, and the end-to-end message flow (including the startup boot sequence), see:
-
-- `docs/DIAGRAMAS_TECNICOS.md` – Mermaid diagrams for:
-   - Architecture and crypto layering (client vs server vs DB)
-   - Step-by-step message lifecycle (register → login → keys → send/receive)
-   - Boot sequence (server startup → UI → workspace)
-
 ## Repository Layout
 
 ```text

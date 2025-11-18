@@ -36,11 +36,11 @@
                 <label>Contraseña
                     <input id="login-password" type="password" placeholder="••••••••" required />
                 </label>
-                <label>Código TOTP (Authenticator)
-                    <input id="login-totp" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="123456" required />
+                <label>Código TOTP (opcional)
+                    <input id="login-totp" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="Lo completamos por ti" />
                 </label>
                 <button class="primary" type="submit">Entrar al chat</button>
-                <p class="hint">Usa tu app autenticadora para obtener el código.</p>
+                <p class="hint">Si ya guardamos tu secreto, generamos el código automáticamente.</p>
                 <div id="login-feedback" class="feedback" role="status"></div>
             </form>
 

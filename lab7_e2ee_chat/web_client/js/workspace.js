@@ -126,67 +126,26 @@ async function initializeContactsPage() {
 function initializeProfilePage() {
     const list = document.getElementById("session-list");
     const keys = document.getElementById("keys-status");
+    const mfa = document.getElementById("mfa-status");
     const sessions = ChatCore.state.sessions;
-    
-    // Render sessions
     list.innerHTML = "";
     sessions.forEach((value, identifier) => {
         const item = document.createElement("li");
         item.innerHTML = `<strong>${identifier}</strong><span>${value.displayName}</span>`;
         list.appendChild(item);
     });
-
-    // Key status
     const keyInfo = ChatCore.state.keyPairs.get(ChatCore.state.activeUser);
     keys.textContent = keyInfo ? "Llave local protegida" : "Pendiente de generar";
-
-    // Key regeneration
+    if (mfa) {
+        mfa.textContent = ChatCore.hasStoredTotp(ChatCore.state.activeUser)
+            ? "Secreto TOTP almacenado localmente. Autocompletamos tus códigos."
+            : "Aún no guardamos tu TOTP aquí. Completa un login exitoso para recordarlo.";
+    }
     document.getElementById("regen-key")?.addEventListener("click", async () => {
         await ChatCore.ensureKeyPair(ChatCore.state.activeUser);
         await ChatCore.registerDeviceIfNeeded(ChatCore.state.activeUser);
         alert("Nuevo par de llaves listo y sincronizado");
         updateTotpBadge();
-    });
-
-    // TOTP / QR Code Logic
-    const showQrBtn = document.getElementById("show-qr-btn");
-    const qrContainer = document.getElementById("qrcode-container");
-    const secretDisplay = document.getElementById("totp-secret-display");
-
-    showQrBtn?.addEventListener("click", async () => {
-        try {
-            const token = ChatCore.state.sessions.get(ChatCore.state.activeUser)?.token;
-            if (!token) throw new Error("No hay sesión activa");
-
-            const response = await fetch("/api/totp/setup", {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-
-            if (!response.ok) throw new Error("Error obteniendo datos de 2FA");
-            
-            const data = await response.json();
-            
-            // Clear previous QR
-            qrContainer.innerHTML = "";
-            qrContainer.classList.add("visible");
-            secretDisplay.classList.remove("hidden");
-            
-            // Render new QR
-            new QRCode(qrContainer, {
-                text: data.otpauth_url,
-                width: 196,
-                height: 196,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
-
-            secretDisplay.textContent = `Secreto manual: ${data.secret}`;
-            showQrBtn.textContent = "Regenerar vista";
-            
-        } catch (error) {
-            alert("Error cargando QR: " + error.message);
-        }
     });
 }
 

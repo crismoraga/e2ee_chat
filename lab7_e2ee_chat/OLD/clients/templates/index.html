@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+    <h2>Register</h2>
+    <form method="post" action="{{ url_for('register_user') }}">
+        <label>
+            Phone Number
+            <input type="text" name="phone" required />
+        </label>
+        <label>
+            Password
+            <input type="password" name="password" required />
+        </label>
+        <button type="submit">Create Account</button>
+    </form>
+</section>
+<section class="panel">
+    <h2>Login</h2>
+    <form method="post" action="{{ url_for('login_user') }}">
+        <label>
+            Phone Number
+            <input type="text" name="phone" required />
+        </label>
+        <label>
+            Password
+            <input type="password" name="password" required />
+        </label>
+        <label>
+            TOTP Code (leave empty to auto-generate)
+            <input type="text" name="totp" />
+        </label>
+        <button type="submit">Access</button>
+    </form>
+</section>
+{% endblock %}

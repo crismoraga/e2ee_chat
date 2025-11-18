@@ -1,0 +1,4 @@
+Flask>=3.0,<4.0
+pycryptodome>=3.19
+requests>=2.31
+pytest>=8.0
