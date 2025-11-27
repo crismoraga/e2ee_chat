@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TEL252 - Diagrama de Arquitectura E2EE Chat</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #7c3aed;
+            --success: #059669;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: white;
+            color: var(--gray-800);
+            line-height: 1.6;
+            font-size: 11pt;
+        }
+        
+        /* Print styles */
+        @media print {
+            body {
+                font-size: 10pt;
+            }
+            .page {
+                page-break-after: always;
+                margin: 0;
+                padding: 15mm;
+                box-shadow: none;
+            }
+            .page:last-child {
+                page-break-after: auto;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+        
+        @page {
+            size: A4;
+            margin: 10mm;
+        }
+        
+        .page {
+            max-width: 210mm;
+            min-height: 297mm;
+            margin: 20px auto;
+            padding: 20mm;
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            border-bottom: 3px solid var(--primary);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 22pt;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 5px;
+        }
+        
+        .header .subtitle {
+            font-size: 14pt;
+            color: var(--primary);
+            font-weight: 500;
+        }
+        
+        .header .meta {
+            font-size: 9pt;
+            color: var(--gray-600);
+            margin-top: 10px;
+        }
+        
+        .header .meta span {
+            margin: 0 10px;
+        }
+        
+        /* Section titles */
+        h2 {
+            font-size: 14pt;
+            color: var(--primary);
+            border-left: 4px solid var(--primary);
+            padding-left: 12px;
+            margin: 20px 0 15px 0;
+        }
+        
+        h3 {
+            font-size: 12pt;
+            color: var(--gray-800);
+            margin: 15px 0 10px 0;
+        }
+        
+        h4 {
+            font-size: 11pt;
+            color: var(--gray-700);
+            margin: 10px 0 8px 0;
+        }
+        
+        /* Primitives table */
+        .primitives-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 9pt;
+        }
+        
+        .primitives-table th {
+            background: var(--primary);
+            color: white;
+            padding: 8px 10px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .primitives-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        
+        .primitives-table tr:nth-child(even) {
+            background: var(--gray-50);
+        }
+        
+        .primitives-table code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--gray-100);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 8pt;
+        }
+        
+        /* Flow diagram */
+        .flow-container {
+            margin: 20px 0;
+        }
+        
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            margin: 10px 0;
+            position: relative;
+        }
+        
+        .flow-number {
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 11pt;
+            flex-shrink: 0;
+            margin-right: 12px;
+        }
+        
+        .flow-number.server {
+            background: var(--success);
+        }
+        
+        .flow-number.client {
+            background: var(--secondary);
+        }
+        
+        .flow-number.crypto {
+            background: var(--warning);
+        }
+        
+        .flow-content {
+            flex: 1;
+            background: var(--gray-50);
+            border-radius: 8px;
+            padding: 10px 15px;
+            border-left: 3px solid var(--primary);
+        }
+        
+        .flow-content.server {
+            border-left-color: var(--success);
+        }
+        
+        .flow-content.client {
+            border-left-color: var(--secondary);
+        }
+        
+        .flow-content.crypto {
+            border-left-color: var(--warning);
+        }
+        
+        .flow-title {
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 5px;
+        }
+        
+        .flow-desc {
+            font-size: 9pt;
+            color: var(--gray-600);
+        }
+        
+        .flow-math {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--gray-800);
+            color: #10b981;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 9pt;
+            overflow-x: auto;
+        }
+        
+        .flow-arrow {
+            width: 28px;
+            text-align: center;
+            color: var(--gray-400);
+            font-size: 18pt;
+            margin: 5px 0;
+            margin-left: 0;
+        }
+        
+        /* Architecture diagram */
+        .arch-diagram {
+            display: grid;
+            grid-template-columns: 1fr 80px 1fr 80px 1fr;
+            gap: 10px;
+            align-items: center;
+            margin: 20px 0;
+        }
+        
+        .arch-box {
+            background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+            border: 2px solid var(--gray-300);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .arch-box.client {
+            border-color: var(--secondary);
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+        }
+        
+        .arch-box.server {
+            border-color: var(--success);
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        }
+        
+        .arch-box.db {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        }
+        
+        .arch-box-title {
+            font-weight: 700;
+            font-size: 11pt;
+            margin-bottom: 8px;
+        }
+        
+        .arch-box-items {
+            font-size: 8pt;
+            color: var(--gray-600);
+            text-align: left;
+        }
+        
+        .arch-box-items li {
+            margin: 3px 0;
+            list-style: none;
+            padding-left: 12px;
+            position: relative;
+        }
+        
+        .arch-box-items li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--gray-400);
+        }
+        
+        .arch-arrow {
+            text-align: center;
+            font-size: 10pt;
+            color: var(--gray-500);
+        }
+        
+        .arch-arrow .label {
+            font-size: 7pt;
+            display: block;
+            margin-top: 3px;
+        }
+        
+        /* Sequence diagram */
+        .sequence-diagram {
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+        
+        .seq-participants {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .seq-participant {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .seq-participant-box {
+            display: inline-block;
+            background: var(--gray-800);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 10pt;
+        }
+        
+        .seq-participant-box.alice {
+            background: var(--secondary);
+        }
+        
+        .seq-participant-box.server {
+            background: var(--success);
+        }
+        
+        .seq-participant-box.bob {
+            background: var(--primary);
+        }
+        
+        .seq-message {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 9pt;
+        }
+        
+        .seq-message-line {
+            flex: 1;
+            height: 2px;
+            background: var(--gray-300);
+            position: relative;
+        }
+        
+        .seq-message-line::after {
+            content: "";
+            position: absolute;
+            right: -1px;
+            top: -4px;
+            border: 5px solid transparent;
+            border-left-color: var(--gray-300);
+        }
+        
+        .seq-message-line.reverse::after {
+            right: auto;
+            left: -1px;
+            border-left-color: transparent;
+            border-right-color: var(--gray-300);
+        }
+        
+        .seq-message-label {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 2px 8px;
+            white-space: nowrap;
+            font-size: 8pt;
+            border: 1px solid var(--gray-200);
+            border-radius: 4px;
+        }
+        
+        /* Crypto box */
+        .crypto-box {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px solid var(--warning);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .crypto-box-title {
+            font-weight: 700;
+            color: var(--warning);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .crypto-box-title::before {
+            content: "🔐";
+        }
+        
+        .crypto-formula {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--gray-800);
+            color: #fbbf24;
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 9pt;
+            line-height: 1.8;
+        }
+        
+        .crypto-params {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 8pt;
+        }
+        
+        .crypto-param {
+            background: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--gray-200);
+        }
+        
+        .crypto-param strong {
+            color: var(--warning);
+        }
+        
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 10px 15px;
+            background: var(--gray-50);
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 9pt;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+        }
+        
+        .legend-color.client { background: var(--secondary); }
+        .legend-color.server { background: var(--success); }
+        .legend-color.crypto { background: var(--warning); }
+        .legend-color.db { background: var(--primary); }
+        
+        /* API endpoint */
+        .endpoint {
+            background: var(--gray-800);
+            color: white;
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9pt;
+            margin: 3px 0;
+        }
+        
+        .endpoint .method {
+            font-weight: 700;
+            margin-right: 8px;
+        }
+        
+        .endpoint .method.post { color: #4ade80; }
+        .endpoint .method.get { color: #60a5fa; }
+        .endpoint .method.delete { color: #f87171; }
+        
+        /* JSON block */
+        .json-block {
+            background: var(--gray-800);
+            color: #e5e7eb;
+            padding: 12px 15px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 8pt;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        
+        .json-block .key { color: #93c5fd; }
+        .json-block .string { color: #86efac; }
+        .json-block .number { color: #fde047; }
+        
+        /* Security properties */
+        .security-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 15px 0;
+        }
+        
+        .security-item {
+            background: var(--gray-50);
+            border-radius: 8px;
+            padding: 12px;
+            border-left: 4px solid var(--success);
+        }
+        
+        .security-item.warning {
+            border-left-color: var(--warning);
+        }
+        
+        .security-item-title {
+            font-weight: 600;
+            font-size: 10pt;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .security-item-desc {
+            font-size: 8pt;
+            color: var(--gray-600);
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding-top: 15px;
+            border-top: 1px solid var(--gray-200);
+            font-size: 8pt;
+            color: var(--gray-500);
+            margin-top: 20px;
+        }
+        
+        /* Utility */
+        .text-center { text-align: center; }
+        .mt-20 { margin-top: 20px; }
+        .mb-10 { margin-bottom: 10px; }
+        .small { font-size: 8pt; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Two column layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        /* Print button */
+        .print-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+            z-index: 1000;
+        }
+        
+        .print-btn:hover {
+            background: var(--primary-dark);
+        }
+    </style>
+</head>
+<body>
+    <button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir Diagrama</button>
+
+    <!-- PÁGINA 1: Portada y Resumen -->
+    <div class="page">
+        <div class="header">
+            <h1>Sistema de Chat con Cifrado E2E</h1>
+            <div class="subtitle">Diagrama de Arquitectura y Flujos Criptográficos</div>
+            <div class="meta">
+                <span><strong>Asignatura:</strong> TEL252 - Criptografía y Seguridad</span>
+                <span><strong>Laboratorio:</strong> #7</span>
+            </div>
+            <div class="meta">
+                <span><strong>Integrantes:</strong> Sergio Ehlen · Gabriela González · Cristóbal Moraga</span>
+            </div>
+            <div class="meta">
+                <span><strong>Docente:</strong> Daniel Espinoza</span>
+                <span><strong>Semestre:</strong> 2025-2</span>
+            </div>
+        </div>
+
+        <h2>1. Inventario de Primitivas Criptográficas</h2>
+        
+        <table class="primitives-table">
+            <thead>
+                <tr>
+                    <th>Primitiva</th>
+                    <th>Uso en el Sistema</th>
+                    <th>Clase TEL252</th>
+                    <th>Estándar</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>HMAC-SHA256</strong></td>
+                    <td>Autenticación de contraseñas (pepper)</td>
+                    <td>Clase 11 (MACs)</td>
+                    <td>RFC 2104</td>
+                </tr>
+                <tr>
+                    <td><strong>TOTP</strong></td>
+                    <td>Segundo factor de autenticación (2FA)</td>
+                    <td>Clase 11</td>
+                    <td>RFC 6238</td>
+                </tr>
+                <tr>
+                    <td><strong>RSA-2048</strong></td>
+                    <td>Generación de pares de llaves por dispositivo</td>
+                    <td>Clase 4 (RSA)</td>
+                    <td>PKCS#1 v2.2</td>
+                </tr>
+                <tr>
+                    <td><strong>RSA-OAEP</strong></td>
+                    <td>Key wrapping (encapsular llaves AES)</td>
+                    <td>Clase 8 (RSA-KEM)</td>
+                    <td>RFC 8017</td>
+                </tr>
+                <tr>
+                    <td><strong>AES-256-GCM</strong></td>
+                    <td>Cifrado autenticado de mensajes (AEAD)</td>
+                    <td>Clase 3 + 11</td>
+                    <td>NIST SP 800-38D</td>
+                </tr>
+                <tr>
+                    <td><strong>HMAC-SHA256</strong></td>
+                    <td>Firma de tokens de sesión (JWT-like)</td>
+                    <td>Clase 11 (MACs)</td>
+                    <td>RFC 2104</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>2. Arquitectura de Componentes</h2>
+        
+        <div class="arch-diagram">
+            <div class="arch-box client">
+                <div class="arch-box-title">🖥️ Cliente (Navegador)</div>
+                <ul class="arch-box-items">
+                    <li>Llave Privada RSA-2048</li>
+                    <li>Llaves Efímeras AES-256</li>
+                    <li>Token de Sesión</li>
+                    <li>Cifrado/Descifrado local</li>
+                </ul>
+            </div>
+            
+            <div class="arch-arrow">
+                ← HTTPS →
+                <span class="label">JSON/REST</span>
+            </div>
+            
+            <div class="arch-box server">
+                <div class="arch-box-title">⚙️ Servidor Flask</div>
+                <ul class="arch-box-items">
+                    <li>session_secret (256 bits)</li>
+                    <li>password_secret (pepper)</li>
+                    <li>Autenticación HMAC+TOTP</li>
+                    <li>Blind Relay (no ve plaintext)</li>
+                </ul>
+            </div>
+            
+            <div class="arch-arrow">
+                ← SQLite →
+                <span class="label">Queries</span>
+            </div>
+            
+            <div class="arch-box db">
+                <div class="arch-box-title">🗄️ Base de Datos</div>
+                <ul class="arch-box-items">
+                    <li>Hashes HMAC (passwords)</li>
+                    <li>Secretos TOTP (base32)</li>
+                    <li>Llaves Públicas (PEM)</li>
+                    <li>Mensajes Cifrados (Base64)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item"><div class="legend-color client"></div> Cliente (operaciones locales)</div>
+            <div class="legend-item"><div class="legend-color server"></div> Servidor (autenticación)</div>
+            <div class="legend-item"><div class="legend-color crypto"></div> Operación Criptográfica</div>
+            <div class="legend-item"><div class="legend-color db"></div> Almacenamiento</div>
+        </div>
+
+        <h2>3. Parámetros de Seguridad</h2>
+        
+        <table class="primitives-table">
+            <thead>
+                <tr>
+                    <th>Primitiva</th>
+                    <th>Parámetro</th>
+                    <th>Valor</th>
+                    <th>Nivel de Seguridad</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>HMAC-SHA256</td><td>Key size</td><td>256 bits</td><td>128 bits (post-quantum)</td></tr>
+                <tr><td>TOTP</td><td>Secret size</td><td>160 bits</td><td>80 bits (post-quantum)</td></tr>
+                <tr><td>TOTP</td><td>Time window</td><td>30s ± 30s</td><td>Balance usabilidad/seguridad</td></tr>
+                <tr><td>RSA</td><td>Modulus</td><td>2048 bits</td><td>~112 bits clásico (NIST L2)</td></tr>
+                <tr><td>RSA-OAEP</td><td>Hash</td><td>SHA-256</td><td>IND-CCA2 secure</td></tr>
+                <tr><td>AES-GCM</td><td>Key size</td><td>256 bits</td><td>128 bits (post-quantum)</td></tr>
+                <tr><td>AES-GCM</td><td>Nonce</td><td>96 bits</td><td>Óptimo para GCM</td></tr>
+                <tr><td>AES-GCM</td><td>Tag</td><td>128 bits</td><td>2<sup>-128</sup> falsificación</td></tr>
+                <tr><td>Session Token</td><td>Validity</td><td>3600s (1h)</td><td>Balance usabilidad/riesgo</td></tr>
+            </tbody>
+        </table>
+
+        <div class="footer">
+            TEL252 · Laboratorio 7 · Universidad Técnica Federico Santa María · Página 1/5
+        </div>
+    </div>
+
+    <!-- PÁGINA 2: Flujo de Registro -->
+    <div class="page">
+        <div class="header">
+            <h1>Flujo 1: Registro de Usuario</h1>
+            <div class="subtitle">Creación de cuenta y aprovisionamiento TOTP</div>
+        </div>
+
+        <div class="endpoint"><span class="method post">POST</span>/api/register</div>
+
+        <div class="flow-container">
+            <div class="flow-step">
+                <div class="flow-number client">1</div>
+                <div class="flow-content client">
+                    <div class="flow-title">Cliente envía credenciales</div>
+                    <div class="flow-desc">El usuario proporciona su identificador (email), nombre de visualización y contraseña.</div>
+                    <div class="json-block">
+{
+  <span class="key">"identifier"</span>: <span class="string">"alice@usm.cl"</span>,
+  <span class="key">"display_name"</span>: <span class="string">"Alice"</span>,
+  <span class="key">"password"</span>: <span class="string">"s3cr3t_p4ss"</span>
+}
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">↓</div>
+
+            <div class="flow-step">
+                <div class="flow-number crypto">2</div>
+                <div class="flow-content crypto">
+                    <div class="flow-title">Servidor genera hash HMAC-SHA256 (Pepper)</div>
+                    <div class="flow-desc">En lugar de usar PBKDF2/Argon2, se aplica HMAC con un secreto del servidor (pepper) que nunca se expone. Si la DB es robada, el atacante no puede ejecutar ataques de diccionario offline.</div>
+                    <div class="flow-math">
+password_hash = HMAC-SHA256(password_secret, password)
+
+Donde:
+  • password_secret = 256 bits (servidor)
+  • password = bytes UTF-8 del usuario
+  • Resultado = 256 bits → Base64URL
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">↓</div>
+
+            <div class="flow-step">
+                <div class="flow-number crypto">3</div>
+                <div class="flow-content crypto">
+                    <div class="flow-title">Servidor genera secreto TOTP (RFC 6238)</div>
+                    <div class="flow-desc">Se crean 160 bits aleatorios y se codifican en Base32 para compatibilidad con apps autenticadoras (Google Authenticator, Authy, etc.).</div>
+                    <div class="flow-math">
+totp_secret = Base32Encode(Random(160 bits))
+
+Ejemplo: "JBSWY3DPEHPK3PXP"
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">↓</div>
+
+            <div class="flow-step">
+                <div class="flow-number server">4</div>
+                <div class="flow-content server">
+                    <div class="flow-title">Servidor persiste usuario en DB</div>
+                    <div class="flow-desc">Se almacena el hash HMAC (no la contraseña), el secreto TOTP y metadatos.</div>
+                    <div class="json-block">
+INSERT INTO users (identifier, display_name, password_hash, totp_secret)
+VALUES (<span class="string">'alice@usm.cl'</span>, <span class="string">'Alice'</span>, <span class="string">'[HMAC_BASE64]'</span>, <span class="string">'[TOTP_SECRET]'</span>)
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">↓</div>
+
+            <div class="flow-step">
+                <div class="flow-number client">5</div>
+                <div class="flow-content client">
+                    <div class="flow-title">Cliente recibe respuesta con TOTP secret</div>
+                    <div class="flow-desc">El secreto TOTP se entrega una única vez para que el usuario configure su app 2FA.</div>
+                    <div class="json-block">
+{
+  <span class="key">"id"</span>: <span class="number">1</span>,
+  <span class="key">"identifier"</span>: <span class="string">"alice@usm.cl"</span>,
+  <span class="key">"display_name"</span>: <span class="string">"Alice"</span>,
+  <span class="key">"totp_secret"</span>: <span class="string">"JBSWY3DPEHPK3PXP"</span>
+}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="crypto-box">
+            <div class="crypto-box-title">Detalle Matemático: HMAC-SHA256</div>
+            <div class="crypto-formula">
+HMAC(K, m) = H((K' ⊕ opad) || H((K' ⊕ ipad) || m))
+
+Donde:
+  • K  = password_secret (256 bits del servidor)
+  • m  = password del usuario (UTF-8)
+  • H  = SHA-256
+  • K' = K (si |K| ≤ 512 bits) o H(K) si mayor
+  • ipad = 0x36 repetido 64 veces
+  • opad = 0x5c repetido 64 veces
+            </div>
+            <div class="crypto-params">
+                <div class="crypto-param"><strong>Entrada:</strong> password + server_secret</div>
+                <div class="crypto-param"><strong>Salida:</strong> 256 bits (32 bytes)</div>
+                <div class="crypto-param"><strong>Codificación:</strong> Base64URL</div>
+                <div class="crypto-param"><strong>Comparación:</strong> hmac.compare_digest (timing-safe)</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            TEL252 · Laboratorio 7 · Universidad Técnica Federico Santa María · Página 2/5
+        </div>
+    </div>
+
+    <!-- PÁGINA 3: Flujo de Login + 2FA -->
+    <div class="page">
+        <div class="header">
+            <h1>Flujo 2: Login con 2FA</h1>
+            <div class="subtitle">Autenticación multifactor y emisión de token de sesión</div>
+        </div>
+
+        <div class="endpoint"><span class="method post">POST</span>/api/login</div>
+
+        <div class="flow-container">
+            <div class="flow-step">
+                <div class="flow-number client">1</div>
+                <div class="flow-content client">
+                    <div class="flow-title">Cliente envía credenciales + código TOTP</div>
+                    <div class="flow-desc">El usuario debe proporcionar su contraseña y el código de 6 dígitos generado por su app autenticadora.</div>
+                    <div class="json-block">
+{
+  <span class="key">"identifier"</span>: <span class="string">"alice@usm.cl"</span>,
+  <span class="key">"password"</span>: <span class="string">"s3cr3t_p4ss"</span>,
+  <span class="key">"totp_code"</span>: <span class="string">"482951"</span>
+}
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">↓</div>
+
+            <div class="flow-step">
+                <div class="flow-number server">2</div>
+                <div class="flow-content server">
+                    <div class="flow-title">Servidor busca usuario en DB</div>
+                    <div class="flow-desc">Se recupera el registro del usuario por su identificador.</div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">↓</div>
+
+            <div class="flow-step">
+                <div class="flow-number crypto">3</div>
+                <div class="flow-content crypto">
+                    <div class="flow-title">Verificación de contraseña (HMAC)</div>
+                    <div class="flow-desc">Se recalcula el HMAC de la contraseña provista y se compara en tiempo constante con el hash almacenado.</div>
+                    <div class="flow-math">
+candidate = HMAC-SHA256(password_secret, password_input)
+stored    = Base64Decode(user.password_hash)
+
+✓ hmac.compare_digest(candidate, stored) → timing-safe
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">↓</div>
+
+            <div class="flow-step">
+                <div class="flow-number crypto">4</div>
+                <div class="flow-content crypto">
+                    <div class="flow-title">Verificación TOTP (RFC 6238)</div>
+                    <div class="flow-desc">Se genera el código esperado para el tiempo actual ±30s y se compara con el provisto por el usuario.</div>
+                    <div class="flow-math">
+T  = floor(Unix_Timestamp / 30)    // Time counter
+K  = Base32Decode(totp_secret)     // Shared secret
+
+HMAC_result = HMAC-SHA1(K, T)      // 20 bytes
+offset = HMAC_result[19] & 0x0F
+
+code = ((HMAC_result[offset] & 0x7F) << 24 |
+        (HMAC_result[offset+1] & 0xFF) << 16 |
+        (HMAC_result[offset+2] & 0xFF) << 8 |
+        (HMAC_result[offset+3] & 0xFF)) mod 10^6
+
+→ Código de 6 dígitos (ej: "482951")
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">↓</div>
+
+            <div class="flow-step">
+                <div class="flow-number crypto">5</div>
+                <div class="flow-content crypto">
+                    <div class="flow-title">Generación de Token de Sesión (JWT-like)</div>
+                    <div class="flow-desc">Se crea un token firmado con HMAC-SHA256 que contiene el ID de usuario, timestamp de emisión y expiración (1 hora).</div>
+                    <div class="flow-math">
+header  = Base64URL("TEL252-HMAC")
+payload = {"uid": 1, "iat": 1732648200, "exp": 1732651800}
+signature = HMAC-SHA256(session_secret, JSON(payload))
+
+token = header.Base64URL(payload).Base64URL(signature)
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">↓</div>
+
+            <div class="flow-step">
+                <div class="flow-number client">6</div>
+                <div class="flow-content client">
+                    <div class="flow-title">Cliente almacena token en memoria</div>
+                    <div class="json-block">
+{
+  <span class="key">"token"</span>: <span class="string">"VEVMMjUyLUhNQUM.eyJ1aWQiOjEsImlhdCI6MTczMjY0ODIwMCwiZXhwIjoxNzMyNjUxODAwfQ.abc123..."</span>,
+  <span class="key">"user"</span>: { <span class="key">"id"</span>: <span class="number">1</span>, <span class="key">"identifier"</span>: <span class="string">"alice@usm.cl"</span>, <span class="key">"display_name"</span>: <span class="string">"Alice"</span> }
+}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="crypto-box">
+            <div class="crypto-box-title">Detalle Matemático: TOTP (RFC 6238)</div>
+            <div class="crypto-formula">
+TOTP(K, T) = Truncate(HMAC-SHA1(K, T)) mod 10^d
+
+Parámetros estándar:
+  • T₀ = 0 (Unix epoch)
+  • X  = 30 segundos (step)
+  • d  = 6 dígitos
+  • T  = floor((Current_Unix_Time - T₀) / X)
+
+Ventana de aceptación: T-1, T, T+1 (±30s para tolerancia de reloj)
+            </div>
+        </div>
+
+        <div class="footer">
+            TEL252 · Laboratorio 7 · Universidad Técnica Federico Santa María · Página 3/5
+        </div>
+    </div>
+
+    <!-- PÁGINA 4: Flujo de Envío de Mensaje E2EE -->
+    <div class="page">
+        <div class="header">
+            <h1>Flujo 3: Envío de Mensaje (E2EE)</h1>
+            <div class="subtitle">Cifrado híbrido AES-256-GCM + RSA-OAEP</div>
+        </div>
+
+        <div class="two-col mb-10">
+            <div class="endpoint"><span class="method get">GET</span>/api/users/{identifier}</div>
+            <div class="endpoint"><span class="method post">POST</span>/api/messages</div>
+        </div>
+
+        <div class="flow-container">
+            <div class="flow-step">
+                <div class="flow-number client">1</div>
+                <div class="flow-content client">
+                    <div class="flow-title">Alice registra su dispositivo</div>
+                    <div class="flow-desc">Genera un par de llaves RSA-2048 localmente. La llave privada NUNCA sale del cliente.</div>
+                    <div class="flow-math">
+(private_key, public_key) = RSA.generate(2048 bits)
+
+POST /api/devices
+  → device_name: "alice-laptop"
+  → public_key_pem: "-----BEGIN PUBLIC KEY-----..."
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">↓</div>
+
+            <div class="flow-step">
+                <div class="flow-number client">2</div>
+                <div class="flow-content client">
+                    <div class="flow-title">Alice busca la llave pública de Bob</div>
+                    <div class="flow-desc">Consulta al servidor el directorio de usuarios para obtener la llave pública del destinatario.</div>
+                    <div class="flow-math">
+GET /api/users/bob@usm.cl
+
+→ { "public_key_pem": "-----BEGIN PUBLIC KEY-----..." }
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">↓</div>
+
+            <div class="flow-step">
+                <div class="flow-number crypto">3</div>
+                <div class="flow-content crypto">
+                    <div class="flow-title">Generar llave AES efímera + Cifrar mensaje (AES-256-GCM)</div>
+                    <div class="flow-desc">Se genera una llave AES-256 aleatoria ÚNICA para este mensaje. El mensaje se cifra con AES-GCM que provee confidencialidad + autenticidad (AEAD).</div>
+                    <div class="flow-math">
+session_key = Random(256 bits)    // Llave efímera única
+nonce = Random(96 bits)           // Nonce para GCM
+aad = "sender=alice@usm.cl"       // Datos asociados (no cifrados, pero autenticados)
+
+(ciphertext, tag) = AES-256-GCM.Encrypt(session_key, nonce, plaintext, aad)
+
+• ciphertext: mensaje cifrado
+• tag: MAC de 128 bits (integridad + autenticidad)
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">↓</div>
+
+            <div class="flow-step">
+                <div class="flow-number crypto">4</div>
+                <div class="flow-content crypto">
+                    <div class="flow-title">Encapsular llave AES con RSA-OAEP (Key Wrapping)</div>
+                    <div class="flow-desc">La llave AES efímera se cifra con la llave pública RSA de Bob. Solo Bob podrá desencapsularla.</div>
+                    <div class="flow-math">
+encrypted_session_key = RSA-OAEP.Encrypt(bob_public_key, session_key)
+
+RSA-OAEP (Optimal Asymmetric Encryption Padding):
+  • Hash: SHA-256
+  • MGF: MGF1-SHA256
+  • Seguridad: IND-CCA2 (resistente a chosen-ciphertext attacks)
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">↓</div>
+
+            <div class="flow-step">
+                <div class="flow-number client">5</div>
+                <div class="flow-content client">
+                    <div class="flow-title">Enviar payload cifrado al servidor</div>
+                    <div class="flow-desc">El servidor recibe solo blobs cifrados. No puede descifrar el mensaje (blind relay).</div>
+                    <div class="json-block">
+POST /api/messages
+{
+  <span class="key">"recipient_identifier"</span>: <span class="string">"bob@usm.cl"</span>,
+  <span class="key">"session_key_encrypted"</span>: <span class="string">"[RSA-OAEP ciphertext, Base64]"</span>,
+  <span class="key">"nonce_b64"</span>: <span class="string">"[96 bits, Base64]"</span>,
+  <span class="key">"ciphertext_b64"</span>: <span class="string">"[AES-GCM ciphertext, Base64]"</span>,
+  <span class="key">"tag_b64"</span>: <span class="string">"[128 bits, Base64]"</span>,
+  <span class="key">"associated_data_b64"</span>: <span class="string">"[AAD, Base64]"</span>
+}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="crypto-box">
+            <div class="crypto-box-title">Detalle Matemático: AES-256-GCM (AEAD)</div>
+            <div class="crypto-formula">
+Encrypt(K, IV, P, A) → (C, T)
+
+1. Generar keystream con AES-CTR:
+   Y₀ = IV || 0³¹ || 1
+   Yᵢ = incr(Yᵢ₋₁)
+   Cᵢ = Pᵢ ⊕ AES_K(Yᵢ)
+
+2. Calcular tag con GHASH:
+   H = AES_K(0¹²⁸)
+   S = GHASH_H(A || 0* || C || 0* || [len(A)]₆₄ || [len(C)]₆₄)
+   T = S ⊕ AES_K(Y₀)
+
+Propiedades:
+  • Confidencialidad: AES-CTR con llave de 256 bits
+  • Integridad: GHASH produce tag de 128 bits
+  • Autenticidad: AAD se autentica pero no se cifra
+            </div>
+        </div>
+
+        <div class="footer">
+            TEL252 · Laboratorio 7 · Universidad Técnica Federico Santa María · Página 4/5
+        </div>
+    </div>
+
+    <!-- PÁGINA 5: Flujo de Recepción + Propiedades de Seguridad -->
+    <div class="page">
+        <div class="header">
+            <h1>Flujo 4: Recepción y Descifrado</h1>
+            <div class="subtitle">Bob descifra el mensaje de Alice</div>
+        </div>
+
+        <div class="endpoint"><span class="method get">GET</span>/api/messages</div>
+
+        <div class="flow-container">
+            <div class="flow-step">
+                <div class="flow-number client">1</div>
+                <div class="flow-content client">
+                    <div class="flow-title">Bob obtiene mensajes cifrados del servidor</div>
+                    <div class="flow-desc">El servidor retorna los artefactos cifrados sin poder leerlos.</div>
+                    <div class="json-block">
+GET /api/messages → {
+  <span class="key">"messages"</span>: [{
+    <span class="key">"sender_identifier"</span>: <span class="string">"alice@usm.cl"</span>,
+    <span class="key">"session_key_encrypted"</span>: <span class="string">"..."</span>,
+    <span class="key">"nonce_b64"</span>: <span class="string">"..."</span>, <span class="key">"ciphertext_b64"</span>: <span class="string">"..."</span>, <span class="key">"tag_b64"</span>: <span class="string">"..."</span>
+  }]
+}
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">↓</div>
+
+            <div class="flow-step">
+                <div class="flow-number crypto">2</div>
+                <div class="flow-content crypto">
+                    <div class="flow-title">Desencapsular llave AES con RSA-OAEP</div>
+                    <div class="flow-desc">Bob usa su llave privada RSA (que solo él posee) para recuperar la llave AES efímera.</div>
+                    <div class="flow-math">
+session_key = RSA-OAEP.Decrypt(bob_private_key, encrypted_session_key)
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-arrow">↓</div>
+
+            <div class="flow-step">
+                <div class="flow-number crypto">3</div>
+                <div class="flow-content crypto">
+                    <div class="flow-title">Descifrar y verificar con AES-256-GCM</div>
+                    <div class="flow-desc">Se descifra el mensaje y se verifica la integridad. Si el tag no coincide, el mensaje se rechaza.</div>
+                    <div class="flow-math">
+plaintext = AES-256-GCM.Decrypt(session_key, nonce, ciphertext, tag, aad)
+
+Si tag inválido → ValueError("MAC check failed")
+Si tag válido   → "Hola Bob, este es un mensaje secreto!"
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2>Propiedades de Seguridad Garantizadas</h2>
+
+        <div class="security-grid">
+            <div class="security-item">
+                <div class="security-item-title">✅ Confidencialidad E2E</div>
+                <div class="security-item-desc">Solo los clientes poseen llaves privadas. El servidor actúa como blind relay - no puede reconstruir plaintext ni llaves AES efímeras.</div>
+            </div>
+            <div class="security-item">
+                <div class="security-item-title">✅ Integridad</div>
+                <div class="security-item-desc">GCM Tag de 128 bits garantiza que el ciphertext no ha sido modificado. Comparación timing-safe en contraseñas y tokens.</div>
+            </div>
+            <div class="security-item">
+                <div class="security-item-title">✅ Autenticación Fuerte</div>
+                <div class="security-item-desc">Doble factor: contraseña (algo que sabes) + TOTP (algo que tienes). Tokens de sesión firmados con HMAC-SHA256.</div>
+            </div>
+            <div class="security-item">
+                <div class="security-item-title">✅ Llaves Efímeras</div>
+                <div class="security-item-desc">Cada mensaje usa una llave AES-256 nueva. Compromiso de un mensaje no afecta a otros.</div>
+            </div>
+            <div class="security-item warning">
+                <div class="security-item-title">⚠️ Sin Forward Secrecy</div>
+                <div class="security-item-desc">Las llaves RSA son de larga duración. Compromiso de private_key permite descifrar mensajes pasados. Mejora: implementar X3DH con ECDH.</div>
+            </div>
+            <div class="security-item warning">
+                <div class="security-item-title">⚠️ Sin Firma de Mensajes</div>
+                <div class="security-item-desc">No hay no-repudiación. Mejora: firmar mensajes con RSA-PSS o EdDSA para probar autoría.</div>
+            </div>
+        </div>
+
+        <h2>Diagrama de Secuencia Completo</h2>
+
+        <div style="background: var(--gray-50); padding: 15px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 8pt; line-height: 1.8;">
+<pre>
+ ALICE (Cliente)              SERVIDOR (Flask)                BOB (Cliente)
+      │                             │                              │
+      │──POST /register────────────>│                              │
+      │<──{user_id, totp_secret}────│                              │
+      │                             │                              │
+      │  [Escanea QR con Authy]     │                              │
+      │                             │                              │
+      │──POST /login (pass+TOTP)───>│                              │
+      │<──{token}───────────────────│                              │
+      │                             │                              │
+      │  [Genera RSA-2048 local]    │                              │
+      │──POST /devices (pubkey)────>│                              │
+      │                             │                              │
+      │                             │<──POST /register──────────────│
+      │                             │──{user_id, totp_secret}──────>│
+      │                             │<──POST /login (pass+TOTP)─────│
+      │                             │──{token}──────────────────────>│
+      │                             │                              │
+      │                             │<──POST /devices (pubkey)──────│
+      │                             │                              │
+      │──GET /users/bob────────────>│                              │
+      │<──{bob_public_key}──────────│                              │
+      │                             │                              │
+      │  [AES-256-GCM encrypt]      │                              │
+      │  [RSA-OAEP wrap key]        │                              │
+      │──POST /messages────────────>│                              │
+      │<──{message_id}──────────────│                              │
+      │                             │                              │
+      │                             │<──GET /messages───────────────│
+      │                             │──{encrypted_messages}────────>│
+      │                             │                              │
+      │                             │   [RSA-OAEP unwrap key]      │
+      │                             │   [AES-256-GCM decrypt]      │
+      │                             │   [Verify GCM tag]           │
+      │                             │                    → plaintext
+</pre>
+        </div>
+
+        <div class="footer" style="margin-top: 10px;">
+            <strong>Referencias:</strong> RFC 2104 (HMAC) · RFC 6238 (TOTP) · RFC 8017 (RSA-OAEP) · NIST SP 800-38D (GCM) · FIPS 180-4 (SHA-256)
+            <br><br>
+            TEL252 · Laboratorio 7 · Universidad Técnica Federico Santa María · Página 5/5
+        </div>
+    </div>
+
+</body>
+</html>
